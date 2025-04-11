@@ -3,3 +3,4 @@ streamlit
 pyrebase4
 python-dotenv
 setuptools
+streamlit-option-menu

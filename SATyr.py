@@ -1,37 +1,34 @@
 import streamlit as st
-from firebase_config import auth
-from satyr_chat_ui import chat_ui
 import pyrebase
-import os
+from streamlit_option_menu import option_menu
 
-# Initialize session state variables
-if "user" not in st.session_state:
-    st.session_state.user = None
+# Firebase configuration
+firebaseConfig = {
+    "apiKey": "AIzaSyBxRk5PqiCMaCgJ2r5yV27O9UUNNxyJ6cc",
+    "authDomain": "satyr-login.firebaseapp.com",
+    "projectId": "satyr-login",
+    "storageBucket": "satyr-login.appspot.com",
+    "messagingSenderId": "438720156646",
+    "appId": "1:438720156646:web:46f570a0dbf3c8b6e6a003",
+    "measurementId": "G-WE9PZNYRQQ",
+    "databaseURL": ""
+}
 
-# Streamlit page setup
-st.set_page_config(page_title="SATyr", layout="wide", page_icon="🧠")
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth = firebase.auth()
 
-# Custom CSS for dark background like ChatGPT
-st.markdown("""
-    <style>
-    body {
-        background-color: #1E1E1E;
-        color: #EAEAEA;
-    }
-    .stApp {
-        background-color: #1E1E1E;
-        color: #EAEAEA;
-    }
-    </style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="SATyr Login", page_icon="🔒", layout="centered")
+st.markdown("## 🔒 Login to SATyr")
 
-# Firebase login/signup page
-def show_login_page():
-    st.title("🔐 Login to SATyr")
-    login_option = st.radio("Choose an option:", ["Login", "Sign Up"])
-    email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
+# Toggle between login and signup
+login_option = st.radio("Choose an option:", ["Login", "Sign Up"])
 
+# Input fields
+email = st.text_input("Email")
+password = st.text_input("Password", type="password")
+
+# Only show buttons if email and password are provided
+if email and password:
     if login_option == "Login":
         if st.button("Login"):
             try:
@@ -39,40 +36,26 @@ def show_login_page():
                 st.session_state.user = user
                 st.success("Logged in successfully!")
                 st.experimental_rerun()
-            except Exception as e:
-                st.session_state.user = None  # Clear bad session
+            except:
+                st.session_state.user = None
                 st.error("Login failed. Please check your credentials.")
-    else:
+
+    elif login_option == "Sign Up":
         if st.button("Sign Up"):
             try:
                 user = auth.create_user_with_email_and_password(email, password)
                 st.session_state.user = user
-                st.success("Account created and signed in!")
+                st.success("Account created successfully! You can now log in.")
                 st.experimental_rerun()
-            except Exception as e:
-                st.session_state.user = None  # Clear bad session
-                st.error("Signup failed. Email may already be in use.")
-
-# Token validation
-def is_authenticated():
-    try:
-        auth.get_account_info(st.session_state.user['idToken'])
-        return True
-    except:
-        return False
-
-# Main routing
-if st.session_state.user is None or not is_authenticated():
-    st.session_state.user = None  # Clear corrupted session
-    show_login_page()
+            except:
+                st.session_state.user = None
+                st.error("Sign up failed. Please try again.")
 else:
-    # Sidebar with logout option
-    with st.sidebar:
-        st.markdown("## SATyr Chat")
-        st.markdown(f"👤 Logged in as **{st.session_state.user.get('email', 'User')}**")
-        if st.button("🚪 Log out"):
-            st.session_state.user = None
-            st.experimental_rerun()
+    st.info("Please enter your email and password to continue.")
 
-    # Show chat interface
-    chat_ui()
+# Main app logic (placeholder)
+if "user" in st.session_state and st.session_state.user:
+    st.markdown("---")
+    st.markdown(f"### 👋 Welcome, {st.session_state.user.get('displayName', 'User')}!")
+    st.write("You are now inside the app.")
+    # Add chatbot or other features here

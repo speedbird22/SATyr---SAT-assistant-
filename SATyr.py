@@ -40,6 +40,7 @@ def show_login_page():
                 st.success("Logged in successfully!")
                 st.experimental_rerun()
             except Exception as e:
+                st.session_state.user = None  # Clear bad session
                 st.error("Login failed. Please check your credentials.")
     else:
         if st.button("Sign Up"):
@@ -49,6 +50,7 @@ def show_login_page():
                 st.success("Account created and signed in!")
                 st.experimental_rerun()
             except Exception as e:
+                st.session_state.user = None  # Clear bad session
                 st.error("Signup failed. Email may already be in use.")
 
 # Token validation
@@ -67,6 +69,7 @@ else:
     # Sidebar with logout option
     with st.sidebar:
         st.markdown("## SATyr Chat")
+        st.markdown(f"👤 Logged in as **{st.session_state.user.get('email', 'User')}**")
         if st.button("🚪 Log out"):
             st.session_state.user = None
             st.experimental_rerun()

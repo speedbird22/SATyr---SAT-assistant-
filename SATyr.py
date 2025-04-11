@@ -51,8 +51,17 @@ def show_login_page():
             except Exception as e:
                 st.error("Signup failed. Email may already be in use.")
 
+# Token validation
+def is_authenticated():
+    try:
+        auth.get_account_info(st.session_state.user['idToken'])
+        return True
+    except:
+        return False
+
 # Main routing
-if st.session_state.user is None:
+if st.session_state.user is None or not is_authenticated():
+    st.session_state.user = None  # Clear corrupted session
     show_login_page()
 else:
     # Sidebar with logout option
@@ -61,6 +70,6 @@ else:
         if st.button("🚪 Log out"):
             st.session_state.user = None
             st.experimental_rerun()
-    
+
     # Show chat interface
     chat_ui()

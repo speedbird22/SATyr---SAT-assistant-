@@ -68,7 +68,7 @@ if "chat_history" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
 
-st.title("Bujji")
+st.title("Bujji  -  You're SAT saviour ")
 
 if not st.session_state.user_name:
     st.session_state.user_name = st.text_input("What’s your name?", value="", placeholder="Enter your name to start...")

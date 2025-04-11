@@ -3,17 +3,18 @@ import http.client
 import json
 from typing import Optional, Dict
 
-class PersonalAIChat:
+# AI Client
+class SATyrAI:
     def __init__(self):
-        self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"  # Replace with secure method if deploying publicly
+        self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"
         self.domain = "km-pfrdhsi"
         self.base_url = "api.personal.ai"
-        self.session_id: Optional[str] = None
-        self.user_name: Optional[str] = None
-        self.context: Optional[str] = None
-        self._connection = http.client.HTTPSConnection(self.base_url)
+        self.session_id = None
+        self.user_name = None
+        self.context = None
+        self.conn = http.client.HTTPSConnection(self.base_url)
 
-    def _create_payload(self, text: str) -> Dict:
+    def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
             "Text": text,
             "DomainName": self.domain,
@@ -21,46 +22,41 @@ class PersonalAIChat:
         }
         if self.session_id:
             payload["SessionId"] = self.session_id
-        if self.context:
-            payload["Context"] = self.context
+        if context:
+            payload["Context"] = context
         return payload
 
-    def send_request(self, text: str) -> Optional[Dict]:
+    def send_request(self, text: str, reply_to: Optional[str] = None) -> str:
         try:
-            payload = json.dumps(self._create_payload(text))
+            payload = json.dumps(self._create_payload(text, context=reply_to))
             headers = {
                 'Content-Type': 'application/json',
                 'x-api-key': self.api_key
             }
 
-            self._connection.request("POST", "/v1/message", payload, headers)
-            response = self._connection.getresponse()
+            self.conn.request("POST", "/v1/message", payload, headers)
+            response = self.conn.getresponse()
 
             if response.status == 200:
-                response_data = json.loads(response.read().decode())
-                self.session_id = response_data.get("SessionId", self.session_id)
-                self.context = response_data.get("ai_message")
-                return response_data
-
-            return {"ai_message": f"API Error: {response.status} {response.reason}"}
+                data = json.loads(response.read().decode())
+                self.session_id = data.get("SessionId", self.session_id)
+                self.context = data.get("ai_message")
+                return self.context
+            return f"[Error] {response.status} - {response.reason}"
 
         except Exception as e:
-            return {"ai_message": f"Network error: {str(e)}"}
+            return f"[Network Error] {str(e)}"
 
     def reset(self):
         self.session_id = None
-        self.user_name = None
         self.context = None
 
-    def __del__(self):
-        self._connection.close()
+# Page config
+st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-
-# Streamlit App
-st.set_page_config(page_title="Personal AI Chat", page_icon="🤖")
-
+# Session state init
 if "chatbot" not in st.session_state:
-    st.session_state.chatbot = PersonalAIChat()
+    st.session_state.chatbot = SATyrAI()
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -68,34 +64,75 @@ if "chat_history" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
 
-st.title("Bujji  -  You're SAT saviour ")
+if "reply_to_index" not in st.session_state:
+    st.session_state.reply_to_index = None
+
+# Custom dark background styling
+st.markdown("""
+<style>
+body {
+    background-color: #202123;
+    color: #ececf1;
+}
+.sidebar .sidebar-content {
+    background-color: #171717;
+}
+.block-container {
+    padding: 2rem 2rem 2rem;
+}
+input, textarea {
+    background-color: #2d2d30 !important;
+    color: white !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Sidebar
+with st.sidebar:
+    st.title("🧠 SATyr")
+    st.subheader("Conversations")
+
+    if st.session_state.chat_history:
+        for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
+            label = f"{user_msg[:20]}..."
+            if st.button(label, key=f"history_{idx}"):
+                st.session_state.reply_to_index = idx
+    else:
+        st.info("No conversations yet.")
+
+    if st.button("🔄 New Session"):
+        st.session_state.chatbot.reset()
+        st.session_state.chat_history = []
+        st.session_state.reply_to_index = None
+        st.experimental_rerun()
+
+# Main Chat UI
+st.title("SATyr - Your AI Assistant")
 
 if not st.session_state.user_name:
-    st.session_state.user_name = st.text_input("What’s your name?", value="", placeholder="Enter your name to start...")
+    st.session_state.user_name = st.text_input("👤 Enter your name to begin:", value="Guest")
 
 if st.session_state.user_name:
     st.session_state.chatbot.user_name = st.session_state.user_name
 
     with st.form("chat_form", clear_on_submit=True):
-        user_input = st.text_input("You:", placeholder="Type your message here...")
+        default_prompt = "Type your message here..." if st.session_state.reply_to_index is None else f"Replying to: {st.session_state.chat_history[st.session_state.reply_to_index][1][:50]}..."
+        user_input = st.text_input("💬 Your message:", placeholder=default_prompt)
         submitted = st.form_submit_button("Send")
 
     if submitted and user_input:
-        response = st.session_state.chatbot.send_request(user_input)
-        st.session_state.chat_history.append((user_input, response.get("ai_message", "No response received")))
+        reply_context = None
+        if st.session_state.reply_to_index is not None:
+            reply_context = st.session_state.chat_history[st.session_state.reply_to_index][1]
+        ai_response = st.session_state.chatbot.send_request(user_input, reply_to=reply_context)
+        st.session_state.chat_history.append((user_input, ai_response))
+        st.session_state.reply_to_index = None
 
-    # Chat history display
-    for user_msg, ai_msg in reversed(st.session_state.chat_history):
-        st.markdown(f"**You:** {user_msg}")
-        st.markdown(f"**AI:** {ai_msg}")
-        st.markdown("---")
-
-    if st.button("🔄 Start New Session"):
-        st.session_state.chatbot.reset()
-        st.session_state.chat_history = []
-        st.session_state.user_name = None
-        st.experimental_rerun()
-
-else:
-    st.info("👆 Please enter your name to begin chatting.")
-
+    # Display chat history
+    for idx, (user_msg, ai_msg) in enumerate(reversed(st.session_state.chat_history)):
+        display_idx = len(st.session_state.chat_history) - idx - 1
+        st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
+        st.markdown(f"**🤖 SATyr:** {ai_msg}")
+        if st.button("↩️ Reply", key=f"reply_{display_idx}"):
+            st.session_state.reply_to_index = display_idx
+        st.divider()

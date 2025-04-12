@@ -3,16 +3,16 @@
 
 COLORS = {
     # Splash Screen
-    "splash_screen": "#D8BFD8",  # Soft purple
+    "splash_screen": "#EFAE2D",  
 
     # App Backgrounds
-    "app_background": "#202123",  # Dark gray (body)
-    "sidebar_background": "#171717",  # Darker gray (sidebar)
-    "input_background": "#2d2d30",  # Dark gray (text inputs/textarea)
+    "app_background": "#202123",  # (body)
+    "sidebar_background": "#171717",  #  (sidebar)
+    "input_background": "#2d2d30",  #  (text inputs/textarea)
 
     # Text Colors
-    "text_color": "#ececf1",  # Light gray (general and history buttons)
-    "visit_counter_text": "#FFFFFF",  # White (visit counter)
+    "text_color": "#ececf1",  # (general and history buttons)
+    "visit_counter_text": "#FFFFFF",  # (visit counter)
 
     # UI Elements
     "visit_counter_background": "#4CAF50",  # Green

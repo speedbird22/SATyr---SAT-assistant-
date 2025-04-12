@@ -394,10 +394,13 @@ if not st.session_state.logged_in:
             time.sleep(0.5)
             st.rerun()
         except Exception as e:
-            if "EMAIL_EXISTS" in str(e):
+            error_msg = str(e)
+            if "EMAIL_EXISTS" in error_msg:
                 st.error("This email is already registered. Please log in or use a different email.")
+            elif "INVALID_LOGIN_CREDENTIALS" in error_msg:
+                st.error("Incorrect email or password.")
             else:
-                st.error(f"Authentication failed: {str(e)}")
+                st.error("Authentication failed. Please try again.")
 
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:

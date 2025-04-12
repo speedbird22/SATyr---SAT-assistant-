@@ -10,6 +10,59 @@ import pyrebase
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
+# Initialize session state for splash screen
+if "splash_shown" not in st.session_state:
+    st.session_state.splash_shown = False
+
+# Display splash screen only if not shown yet, using same logo.jpg as sidebar
+if not st.session_state.splash_shown:
+    with st.container():
+        st.markdown(
+            """
+            <style>
+            #splash-screen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            }
+            .splash-logo {
+                max-width: 200px; /* Larger for splash screen */
+                height: auto;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+            }
+            </style>
+            <div id="splash-screen">
+            """,
+            unsafe_allow_html=True
+        )
+        # Use same logo.jpg as sidebar
+        st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_column_width=False)
+        st.markdown(
+            """
+            </div>
+            <script>
+                setTimeout(function() {
+                    var splash = document.getElementById('splash-screen');
+                    if (splash) {
+                        splash.style.display = 'none';
+                    }
+                }, 3000);
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
+    st.session_state.splash_shown = True
+    st.experimental_rerun()
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -224,12 +277,12 @@ st.markdown(
         margin-bottom: 10px;
     }
     .logo-image {
-        max-width: 50px; /* Downscaled size, maintains aspect ratio */
+        max-width: 50px; /* Downscaled size for sidebar */
         height: auto;
         margin-right: 10px;
-        image-rendering: -webkit-optimize-contrast; /* Enhance sharpness in Webkit browsers */
-        image-rendering: -moz-crisp-edges; /* Enhance sharpness in Firefox */
-        image-rendering: crisp-edges; /* General enhancement */
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: crisp-edges;
     }
     </style>
     """,
@@ -351,7 +404,7 @@ if st.session_state.logged_in:
         st.markdown('<div class="logo-container">', unsafe_allow_html=True)
         col1, col2 = st.columns([1, 3])
         with col1:
-            st.image("logo.jpg", clamp=True, output_format="auto")  # Removed width to preserve resolution
+            st.image("logo.jpg", clamp=True, output_format="auto")  # Same logo.jpg
         with col2:
             st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -360,7 +413,7 @@ if st.session_state.logged_in:
             """
             <style>
             [data-testid="stImage"] img {
-                max-width: 50px; /* Downscaled size, maintains aspect ratio */
+                max-width: 50px; /* Downscaled for sidebar */
                 height: auto;
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: -moz-crisp-edges;

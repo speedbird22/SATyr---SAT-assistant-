@@ -110,13 +110,40 @@ if "user_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Custom styling including visit counter, heart icon, buttons, and logo ---
+# --- Custom styling including splash screen, visit counter, heart icon, buttons, and logo ---
 st.markdown(
     """
     <style>
     body {
         background-color: #202123;
         color: #ececf1;
+        margin: 0;
+        overflow: hidden; /* Prevent scrolling during splash */
+    }
+    .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        animation: fadeOut 2s forwards;
+        animation-delay: 2s;
+    }
+    .splash-screen img {
+        max-width: 100px;
+        height: auto;
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    .splash-screen.fade-out {
+        display: none;
     }
     .sidebar .sidebar-content {
         background-color: #171717;
@@ -232,6 +259,27 @@ st.markdown(
         image-rendering: crisp-edges; /* General enhancement */
     }
     </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- Add splash screen HTML and JavaScript ---
+st.markdown(
+    """
+    <div class="splash-screen">
+        <img src="logo.jpg" alt="SATyr Logo">
+    </div>
+    <script>
+        // Wait for 2 seconds, then fade out and remove splash screen
+        setTimeout(() => {
+            const splash = document.querySelector('.splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.remove();
+                document.body.style.overflow = 'auto'; // Restore scrolling
+            }, 1000); // Match the animation duration (1s)
+        }, 2000);
+    </script>
     """,
     unsafe_allow_html=True
 )

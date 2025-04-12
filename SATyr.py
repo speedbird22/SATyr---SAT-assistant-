@@ -1,6 +1,5 @@
 import streamlit as st
 import re
-from auth_helper import firebase_signup, firebase_login  # assuming you'll use firebase_login soon too
 
 # Email validation
 def is_valid_email(email):
@@ -10,6 +9,13 @@ def is_valid_email(email):
 # Password validation
 def is_valid_password(password):
     return len(password) >= 6
+
+# Initialize session state variables if not set
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
 
 # --- Login Page ---
 if not st.session_state.logged_in:
@@ -32,17 +38,14 @@ if not st.session_state.logged_in:
         elif not is_valid_password(password):
             st.warning("Password must be at least 6 characters long.")
         else:
-            success, message = firebase_signup(email, password)
-            if success:
-                st.success(message)
-                st.session_state.user_name = email.split("@")[0]
-                st.session_state.logged_in = True
-                st.experimental_rerun()
-            else:
-                st.error(message)
+            st.success("Signup successful!")
+            st.session_state.user_name = email.split("@")[0]
+            st.session_state.logged_in = True
+            st.experimental_rerun()
 
-    # LOGIN FLOW (optional: fill this later)
+    # LOGIN FLOW (temporary placeholder)
     elif login:
         st.session_state.show_double_click_message = True  # Temporary logic if login not built yet
-        # You’ll replace this with firebase_login() once ready
         st.warning("Login functionality coming soon.")
+else:
+    st.success(f"Welcome back, {st.session_state.user_name}!")

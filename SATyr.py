@@ -365,7 +365,7 @@ if st.session_state.logged_in:
                 image-rendering: crisp-edges;
             }
             h1.sidebar-title {
-                font-size: 100px !important; /* Doubled from 50px, enforced with !important */
+                font-size: 75px !important; /* Adjusted to 1.5x original size */
                 margin: 0;
                 line-height: 1;
                 vertical-align: middle;

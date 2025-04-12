@@ -14,7 +14,7 @@ st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 
-# Display splash screen only if not shown yet, using same logo.jpg as sidebar
+# Display splash screen (plain white, no logo)
 if not st.session_state.splash_shown:
     with st.container():
         st.markdown(
@@ -27,9 +27,6 @@ if not st.session_state.splash_shown:
                 width: 100vw;
                 height: 100vh;
                 background-color: white;
-                display: flex;
-                justify-content: center;
-                align-items: center;
                 z-index: 999999; /* High to cover sidebar */
                 animation: fadeOut 0.5s ease-out 1.5s forwards; /* Fade out after 1.5s */
             }
@@ -37,29 +34,8 @@ if not st.session_state.splash_shown:
                 from { opacity: 1; }
                 to { opacity: 0; visibility: hidden; } /* Remove after fade */
             }
-            .splash-logo {
-                max-width: 200px; /* Larger for splash screen */
-                height: auto;
-                margin: auto; /* Center within flex */
-                border: 1px solid rgba(0, 0, 0, 0.2); /* Contrast */
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Stronger shadow */
-                image-rendering: -webkit-optimize-contrast;
-                image-rendering: -moz-crisp-edges;
-                image-rendering: crisp-edges;
-            }
             </style>
-            <div id="splash-screen">
-            """,
-            unsafe_allow_html=True
-        )
-        # Use st.image for logo to match sidebar, ensure it fades
-        try:
-            st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_container_width=False, channels="RGB")
-        except FileNotFoundError:
-            st.error("logo.jpg not found in project folder. Please ensure it’s in the same directory as this script.")
-        st.markdown(
-            """
-            </div>
+            <div id="splash-screen"></div>
             <script>
                 console.log("Splash screen loaded");
                 setTimeout(function() {

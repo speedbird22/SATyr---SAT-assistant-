@@ -231,12 +231,6 @@ st.markdown(
         image-rendering: -moz-crisp-edges; /* Enhance sharpness in Firefox */
         image-rendering: crisp-edges; /* General enhancement */
     }
-    .sidebar-title {
-        font-size: 50px; /* Original size, updated below in sidebar */
-        margin: 0;
-        line-height: 1;
-        vertical-align: middle;
-    }
     </style>
     """,
     unsafe_allow_html=True
@@ -370,8 +364,8 @@ if st.session_state.logged_in:
                 image-rendering: -moz-crisp-edges;
                 image-rendering: crisp-edges;
             }
-            .sidebar-title {
-                font-size: 100px; /* Doubled from 50px */
+            h1.sidebar-title {
+                font-size: 100px !important; /* Doubled from 50px, enforced with !important */
                 margin: 0;
                 line-height: 1;
                 vertical-align: middle;

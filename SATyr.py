@@ -131,12 +131,16 @@ st.markdown(
         justify-content: center;
         align-items: center;
         z-index: 9999;
-        animation: fadeOut 2s forwards;
+        animation: fadeOut 1s forwards;
         animation-delay: 2s;
     }
     .splash-screen img {
         max-width: 100px;
         height: auto;
+    }
+    .splash-screen .no-image {
+        color: #000;
+        font-size: 20px;
     }
     @keyframes fadeOut {
         from { opacity: 1; }
@@ -267,7 +271,8 @@ st.markdown(
 st.markdown(
     """
     <div class="splash-screen">
-        <img src="logo.jpg" alt="SATyr Logo">
+        <img src="logo.jpg" alt="SATyr Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <div class="no-image">Logo not found. Please check the file 'logo.jpg'.</div>
     </div>
     <script>
         // Wait for 2 seconds, then fade out and remove splash screen
@@ -277,6 +282,8 @@ st.markdown(
             setTimeout(() => {
                 splash.remove();
                 document.body.style.overflow = 'auto'; // Restore scrolling
+                // Force Streamlit to re-render after splash removal
+                window.dispatchEvent(new Event('resize'));
             }, 1000); // Match the animation duration (1s)
         }, 2000);
     </script>
@@ -332,6 +339,15 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 
 # --- Initial load of visit counter ---
 load_visit_counter()
+
+# --- Redirect signed-in users to login page ---
+if st.session_state.logged_in and st.session_state.user_email and st.session_state.user_token:
+    st.session_state.logged_in = False  # Reset to force login page
+    st.session_state.chat_history = []
+    st.session_state.reply_to_index = None
+    st.session_state.user_name = None
+    st.session_state.user_token = None
+    st.rerun()
 
 # --- Login Page ---
 if not st.session_state.logged_in:

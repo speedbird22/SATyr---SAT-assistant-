@@ -12,20 +12,26 @@ from email.mime.text import MIMEText
 # Load environment variables from .env file
 load_dotenv()
 
-# Firebase configuration
+# Firebase configuration with fallback for missing databaseURL
 firebase_config = {
-    "apiKey": os.getenv("API_KEY"),
-    "authDomain": os.getenv("AUTH_DOMAIN"),
-    "projectId": os.getenv("PROJECT_ID"),
-    "storageBucket": os.getenv("STORAGE_BUCKET"),
-    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID"),
-    "appId": os.getenv("APP_ID"),
-    "measurementId": os.getenv("MEASUREMENT_ID")
+    "apiKey": os.getenv("API_KEY", ""),
+    "authDomain": os.getenv("AUTH_DOMAIN", ""),
+    "projectId": os.getenv("PROJECT_ID", ""),
+    "storageBucket": os.getenv("STORAGE_BUCKET", ""),
+    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID", ""),
+    "appId": os.getenv("APP_ID", ""),
+    "measurementId": os.getenv("MEASUREMENT_ID", ""),
+    "databaseURL": os.getenv("DATABASE_URL", "")  # Should now be set to https://satyr-fe4f3-default-rtdb.firebaseio.com
 }
 
-# Initialize Firebase
-firebase = pyrebase.initialize_app(firebase_config)
-auth = firebase.auth()
+# Initialize Firebase with error handling
+try:
+    firebase = pyrebase.initialize_app(firebase_config)
+    auth = firebase.auth()
+    st.success("Firebase initialized successfully!")
+except Exception as e:
+    st.error(f"Failed to initialize Firebase: {str(e)}")
+    st.stop()
 
 # AI Client
 class SATyrAI:
@@ -171,13 +177,14 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
+                st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
                 auth.create_user_with_email_and_password(email, password)
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
-                # Send welcome email
                 send_welcome_email(email)
+                st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
             st.rerun()

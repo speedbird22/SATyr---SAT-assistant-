@@ -3,6 +3,29 @@ import http.client
 import json
 from typing import Optional, Dict
 import time
+from dotenv import load_dotenv
+import os
+import pyrebase
+import smtplib
+from email.mime.text import MIMEText
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Firebase configuration
+firebase_config = {
+    "apiKey": os.getenv("API_KEY"),
+    "authDomain": os.getenv("AUTH_DOMAIN"),
+    "projectId": os.getenv("PROJECT_ID"),
+    "storageBucket": os.getenv("STORAGE_BUCKET"),
+    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID"),
+    "appId": os.getenv("APP_ID"),
+    "measurementId": os.getenv("MEASUREMENT_ID")
+}
+
+# Initialize Firebase
+firebase = pyrebase.initialize_app(firebase_config)
+auth = firebase.auth()
 
 # AI Client
 class SATyrAI:
@@ -74,6 +97,9 @@ if "reply_to_index" not in st.session_state:
 if "show_double_click_message" not in st.session_state:
     st.session_state.show_double_click_message = False
 
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+
 # --- Custom dark background styling ---
 st.markdown("""
 <style>
@@ -139,11 +165,44 @@ if not st.session_state.logged_in:
         signup = st.button("📝 Sign Up")
 
     if (login or signup) and email_valid and password_valid:
-        st.session_state.show_double_click_message = True
-        time.sleep(0.5)
-        st.session_state.logged_in = True
-        st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        st.stop()
+        try:
+            if login:
+                user = auth.sign_in_with_email_and_password(email, password)
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.session_state.user_name = email.split("@")[0]
+            elif signup:
+                auth.create_user_with_email_and_password(email, password)
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.session_state.user_name = email.split("@")[0]
+                # Send welcome email
+                send_welcome_email(email)
+            st.session_state.show_double_click_message = True
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Authentication failed: {str(e)}")
+
+# --- Function to send welcome email ---
+def send_welcome_email(to_email):
+    from_email = "your-email@gmail.com"  # Replace with your Gmail address
+    password = "your-app-specific-password"  # Replace with App Password if 2FA is enabled
+
+    msg = MIMEText(f"Welcome to SATyr, {st.session_state.user_name}! We're excited to have you on board.")
+    msg['Subject'] = 'Welcome to SATyr'
+    msg['From'] = from_email
+    msg['To'] = to_email
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(from_email, password)
+        server.sendmail(from_email, to_email, msg.as_string())
+        server.quit()
+        st.success("Welcome email sent successfully!")
+    except Exception as e:
+        st.error(f"Failed to send welcome email: {str(e)}")
 
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:
@@ -163,10 +222,7 @@ if st.session_state.logged_in:
             st.session_state.chatbot.reset()
             st.session_state.chat_history = []
             st.session_state.reply_to_index = None
-            try:
-                st.rerun()
-            except Exception:
-                st.stop()
+            st.rerun()
 
         if st.button("🚪 Logout"):
             st.session_state.logged_in = False
@@ -174,6 +230,7 @@ if st.session_state.logged_in:
             st.session_state.chat_history = []
             st.session_state.reply_to_index = None
             st.session_state.user_name = None
+            st.session_state.user_email = None
             st.rerun()
 
 # --- Main Chat UI ---

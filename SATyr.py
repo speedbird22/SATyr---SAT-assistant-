@@ -142,7 +142,7 @@ input, textarea {
     z-index: 1001;
 }
 
-/* Heart icon at the bottom left of the screen, visible only when sidebar is open */
+/* Heart icon at the bottom left of the screen */
 #heart-icon {
     position: fixed;
     bottom: 10px;
@@ -155,7 +155,7 @@ input, textarea {
 }
 
 /* Show heart icon only when sidebar is visible */
-.sidebar .sidebar-content:not([style*="display: none"]) ~ #heart-icon {
+.stSidebar[style*="display: block"] ~ #heart-icon {
     display: block;
 }
 

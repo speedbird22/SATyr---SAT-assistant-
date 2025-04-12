@@ -35,69 +35,14 @@ if not st.session_state.splash_shown:
                 to { opacity: 0; visibility: hidden; } /* Remove after fade */
             }
             </style>
-            < unfore
-
-System: You are Grok 3, created by xAI.
-
-It looks like the code was cut off. Based on your request, you want the splash screen to be a baby blue color (`#89CFF0`), keeping all other functionality intact: a plain splash screen (no logo), covering the entire app including the sidebar, displaying for 1.5 seconds, fading out over 0.5 seconds, and gone by 2 seconds, with the sidebar showing `logo.jpg` (50px) after login, and no changes to the rest of the app (Firebase, `SATyrAI`, chat, login, UI).
-
-I’ll complete the splash screen section and provide the full updated code, ensuring the baby blue splash screen works as specified.
-
-```python
-import streamlit as st
-import http.client
-import json
-from typing import Optional, Dict, List, Tuple
-import time
-from dotenv import load_dotenv
-import os
-import pyrebase
-
-# Set page config as the first Streamlit command
-st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
-
-# Initialize session state for splash screen
-if "splash_shown" not in st.session_state:
-    st.session_state.splash_shown = False
-
-# Display splash screen (baby blue, no logo)
-if not st.session_state.splash_shown:
-    with st.container():
-        st.markdown(
-            """
-            <style>
-            #splash-screen {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background-color: #89CFF0; /* Baby blue */
-                z-index: 999999; /* High to cover sidebar */
-                animation: fadeOut 0.5s ease-out 1.5s forwards; /* Fade out after 1.5s */
-            }
-            @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; visibility: hidden; } /* Remove after fade */
-            }
-            </style>
             <div id="splash-screen"></div>
-            <script>
-                console.log("Splash screen loaded");
-                setTimeout(function() {
-                    var splash = document.getElementById('splash-screen');
-                    if (splash) {
-                        splash.style.opacity = '0';
-                        splash.style.visibility = 'hidden';
-                        console.log("Splash hidden after 2s");
-                    }
-                }, 2000); /* Match CSS animation end */
-            </script>
             """,
             unsafe_allow_html=True
         )
+    # Use time.sleep to ensure the splash screen is visible for the full duration
+    time.sleep(2)  # Total duration: 1.5s display + 0.5s fade
     st.session_state.splash_shown = True
-    # No rerun; CSS and JS handle fade-out
+    st.rerun()  # Rerun to remove splash screen
 
 # Load environment variables from .env file
 load_dotenv()

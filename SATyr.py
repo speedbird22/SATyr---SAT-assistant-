@@ -51,14 +51,26 @@ class SATyrAI:
         self.session_id = None
         self.context = None
 
-# Session state: login
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
 # Page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-# Styling
+# Session state init
+if "chatbot" not in st.session_state:
+    st.session_state.chatbot = SATyrAI()
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+if "user_name" not in st.session_state:
+    st.session_state.user_name = None
+
+if "reply_to_index" not in st.session_state:
+    st.session_state.reply_to_index = None
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+# Custom dark background styling
 st.markdown("""
 <style>
 body {
@@ -78,44 +90,36 @@ input, textarea {
 </style>
 """, unsafe_allow_html=True)
 
-# 🔐 LOGIN PAGE
+# Login Page
 if not st.session_state.logged_in:
     st.title("🔐 Welcome to SATyr")
-    st.markdown("Please log in to continue.")
+    st.subheader("Please log in or sign up to continue.")
 
-    with st.form("login_form"):
-        email = st.text_input("📧 Email")
-        password = st.text_input("🔑 Password", type="password")
-        login_col, signup_col = st.columns(2)
-        with login_col:
-            login = st.form_submit_button("Login")
-        with signup_col:
-            signup = st.form_submit_button("Sign Up")
+    email = st.text_input("📧 Email")
+    password = st.text_input("🔒 Password", type="password")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        login = st.button("Login")
+    with col2:
+        signup = st.button("Sign Up")
 
     if login or signup:
         st.session_state.logged_in = True
         st.experimental_rerun()
 
-# 💬 MAIN CHAT UI
-if st.session_state.logged_in:
-    # Session state init
-    if "chatbot" not in st.session_state:
-        st.session_state.chatbot = SATyrAI()
-
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    if "user_name" not in st.session_state:
-        st.session_state.user_name = None
-
-    if "reply_to_index" not in st.session_state:
-        st.session_state.reply_to_index = None
-
+# Main Chat UI
+else:
     # Sidebar
     with st.sidebar:
         st.title("🧠 SATyr")
-        st.subheader("Conversations")
 
+        # Logout button
+        if st.button("🚪 Logout"):
+            st.session_state.logged_in = False
+            st.experimental_rerun()
+
+        st.subheader("Conversations")
         if st.session_state.chat_history:
             for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
                 label = f"{user_msg[:20]}..."
@@ -130,7 +134,6 @@ if st.session_state.logged_in:
             st.session_state.reply_to_index = None
             st.experimental_rerun()
 
-    # Chat UI
     st.title("SATyr - Your AI Assistant")
 
     if not st.session_state.user_name:
@@ -152,6 +155,7 @@ if st.session_state.logged_in:
             st.session_state.chat_history.append((user_input, ai_response))
             st.session_state.reply_to_index = None
 
+        # Display chat history
         for idx, (user_msg, ai_msg) in enumerate(reversed(st.session_state.chat_history)):
             display_idx = len(st.session_state.chat_history) - idx - 1
             st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")

@@ -135,12 +135,10 @@ if not st.session_state.logged_in:
 
     if login or signup:
         st.session_state.show_double_click_message = True  # Show the "double-click" message
-        # Wait for the user to double-click, simulate the process by handling clicks normally
         time.sleep(0.5)  # Add delay before handling the next steps to simulate the double-click
         st.session_state.logged_in = True
         st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        # No rerun, just process the logic
-        st.experimental_rerun()
+        st.experimental_rerun()  # Trigger the rerun after the user clicks
 
     st.stop()
 

@@ -333,9 +333,7 @@ if not st.session_state.logged_in:
         st.error("Please enter a valid email address containing '@'.")
 
     # Password validation
-    password_valid = len(password) >= 6 if password……
-
-System: else False
+    password_valid = len(password) >= 6 if password else False
     if password and not password_valid:
         st.error("Password must be at least 6 characters long.")
 

@@ -110,44 +110,13 @@ if "user_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Custom styling including splash screen, visit counter, heart icon, buttons, and logo ---
+# --- Custom styling including visit counter, heart icon, buttons, and logo ---
 st.markdown(
     """
     <style>
     body {
         background-color: #202123;
         color: #ececf1;
-        margin: 0;
-        overflow: hidden; /* Prevent scrolling during splash */
-    }
-    .splash-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        animation: fadeOut 1s forwards;
-        animation-delay: 2s;
-    }
-    .splash-screen img {
-        max-width: 100px;
-        height: auto;
-    }
-    .splash-screen .no-image {
-        color: #000;
-        font-size: 20px;
-    }
-    @keyframes fadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; }
-    }
-    .splash-screen.fade-out {
-        display: none;
     }
     .sidebar .sidebar-content {
         background-color: #171717;
@@ -267,30 +236,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Add splash screen HTML and JavaScript ---
-st.markdown(
-    """
-    <div class="splash-screen">
-        <img src="logo.jpg" alt="SATyr Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div class="no-image">Logo not found. Please check the file 'logo.jpg'.</div>
-    </div>
-    <script>
-        // Wait for 2 seconds, then fade out and remove splash screen
-        setTimeout(() => {
-            const splash = document.querySelector('.splash-screen');
-            splash.style.opacity = '0';
-            setTimeout(() => {
-                splash.remove();
-                document.body.style.overflow = 'auto'; // Restore scrolling
-                // Force Streamlit to re-render after splash removal
-                window.dispatchEvent(new Event('resize'));
-            }, 1000); // Match the animation duration (1s)
-        }, 2000);
-    </script>
-    """,
-    unsafe_allow_html=True
-)
-
 # --- Show the "Please double-click" message if needed ---
 if st.session_state.show_double_click_message:
     st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
@@ -339,15 +284,6 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 
 # --- Initial load of visit counter ---
 load_visit_counter()
-
-# --- Redirect signed-in users to login page ---
-if st.session_state.logged_in and st.session_state.user_email and st.session_state.user_token:
-    st.session_state.logged_in = False  # Reset to force login page
-    st.session_state.chat_history = []
-    st.session_state.reply_to_index = None
-    st.session_state.user_name = None
-    st.session_state.user_token = None
-    st.rerun()
 
 # --- Login Page ---
 if not st.session_state.logged_in:

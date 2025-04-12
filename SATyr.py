@@ -111,7 +111,7 @@ if "user_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Custom styling including visit counter ---
+# --- Custom styling including visit counter and heart icon ---
 st.markdown("""
 <style>
 body {
@@ -138,8 +138,48 @@ input, textarea {
     border-radius: 5px;
     font-size: 14px;
     margin-top: 5px;
-    display: inline-block; /* Ensure it fits within sidebar */
-    z-index: 1001; /* Ensure it stays above other elements */
+    display: inline-block;
+    z-index: 1001;
+}
+
+/* Heart icon with J at the bottom of sidebar */
+#heart-j {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    background-color: #ff4d4d; /* Red heart color */
+    transform: rotate(-45deg);
+    margin-top: 10px; /* Space from above content */
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 10px; /* Space from bottom */
+}
+#heart-j:before,
+#heart-j:after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #ff4d4d;
+    border-radius: 50%;
+}
+#heart-j:before {
+    top: -10px;
+    left: 0;
+}
+#heart-j:after {
+    left: 10px;
+    top: 0;
+}
+#heart-j span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
 }
 
 /* Floating message at the bottom */
@@ -298,6 +338,9 @@ if st.session_state.logged_in:
             st.session_state.user_email = None
             st.session_state.user_token = None
             st.rerun()
+
+        # Add heart with J at the bottom of sidebar
+        st.markdown('<div id="heart-j"><span>J</span></div>', unsafe_allow_html=True)
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:

@@ -353,7 +353,7 @@ if st.session_state.logged_in:
             st.image("logo.jpg", clamp=True, output_format="auto")  # Removed width to preserve resolution
         with col2:
             st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
-        # Apply CSS downscaling and updated title size
+        # Apply CSS downscaling and updated title size with alignment
         st.markdown(
             """
             <style>
@@ -365,10 +365,11 @@ if st.session_state.logged_in:
                 image-rendering: crisp-edges;
             }
             h1.sidebar-title {
-                font-size: 75px !important; /* Adjusted to 1.5x original size */
+                font-size: 50px !important; /* Reset to original size */
                 margin: 0;
                 line-height: 1;
-                vertical-align: middle;
+                vertical-align: middle; /* Align text vertically with logo */
+                margin-top: -5px; /* Push text up slightly to level with logo */
             }
             </style>
             """,

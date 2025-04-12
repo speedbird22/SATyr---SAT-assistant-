@@ -231,6 +231,12 @@ st.markdown(
         image-rendering: -moz-crisp-edges; /* Enhance sharpness in Firefox */
         image-rendering: crisp-edges; /* General enhancement */
     }
+    .sidebar-title {
+        font-size: 40px; /* Adjusted to match approximate height of 50px logo */
+        margin: 0;
+        line-height: 1;
+        vertical-align: middle;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -352,7 +358,7 @@ if st.session_state.logged_in:
         with col1:
             st.image("logo.jpg", clamp=True, output_format="auto")  # Removed width to preserve resolution
         with col2:
-            st.title("SATyr")
+            st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
         # Apply CSS downscaling
         st.markdown(
             """

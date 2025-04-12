@@ -2,6 +2,7 @@ import streamlit as st
 import http.client
 import json
 from typing import Optional, Dict
+import time
 
 # AI Client
 class SATyrAI:
@@ -72,6 +73,9 @@ if "user_name" not in st.session_state:
 if "reply_to_index" not in st.session_state:
     st.session_state.reply_to_index = None
 
+if "show_double_click_message" not in st.session_state:
+    st.session_state.show_double_click_message = False
+
 
 # --- Custom dark background styling ---
 st.markdown("""
@@ -90,8 +94,29 @@ input, textarea {
     background-color: #2d2d30 !important;
     color: white !important;
 }
+
+/* Floating message at the bottom */
+#floating-message {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000;
+}
 </style>
 """, unsafe_allow_html=True)
+
+
+# --- Show the "Please double-click" message if needed ---
+if st.session_state.show_double_click_message:
+    st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
+    time.sleep(2)  # Keep the message for 2 seconds, then it disappears
+    st.session_state.show_double_click_message = False  # Hide the message after a short period
 
 
 # --- Login Page ---
@@ -108,16 +133,13 @@ if not st.session_state.logged_in:
     with col2:
         signup = st.button("📝 Sign Up")
 
-    if login:
+    if login or signup:
+        st.session_state.show_double_click_message = True  # Show the "double-click" message
+        # Wait for the user to double-click, simulate the process by handling clicks normally
+        time.sleep(0.5)  # Add delay before handling the next steps to simulate the double-click
         st.session_state.logged_in = True
         st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        # Simulate the button being clicked again
-        st.experimental_rerun()
-
-    if signup:
-        st.session_state.logged_in = True
-        st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        # Simulate the button being clicked again
+        # No rerun, just process the logic
         st.experimental_rerun()
 
     st.stop()
@@ -151,7 +173,7 @@ with st.sidebar:
         st.session_state.chat_history = []
         st.session_state.reply_to_index = None
         st.session_state.user_name = None
-        # Simulate the button being clicked again
+        # Logout should be handled properly
         st.experimental_rerun()
 
 

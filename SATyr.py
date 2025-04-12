@@ -8,14 +8,14 @@ import os
 import pyrebase
 from colors import COLORS  # Import colors
 
-# Set page config as the first Streamlit command
+# Set page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
 # Initialize session state for splash screen
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 
-# Display splash screen (color from colors.py, no logo, 1s duration)
+# Display splash screen
 if not st.session_state.splash_shown:
     with st.container():
         st.markdown(
@@ -44,7 +44,7 @@ if not st.session_state.splash_shown:
     st.session_state.splash_shown = True
     st.rerun()
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 # Firebase configuration
@@ -169,18 +169,46 @@ def save_refresh_token(email: str, refresh_token: str, token: str):
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("refresh_token").set(refresh_token, token)
+        db.child("users").child(safe_email).child("email").set(email, token)
+        st.session_state.debug_message = f"Saved refresh token for {safe_email}"
     except Exception as e:
-        st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work. Please set Firebase rules in the Console.")
+        st.session_state.debug_message = f"Failed to save refresh token: {str(e)}"
+        st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work.")
 
-def load_refresh_token(email: str, token: str) -> Optional[str]:
+def load_refresh_token(email: str) -> Optional[str]:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        return db.child("users").child(safe_email).child("refresh_token").get(token=token).val()
+        token = db.child("users").child(safe_email).child("refresh_token").get().val()
+        st.session_state.debug_message = f"Loaded refresh token for {safe_email}: {token[:10]}..."
+        return token
     except Exception as e:
-        st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work. Please set Firebase rules in the Console.")
+        st.session_state.debug_message = f"Failed to load refresh token: {str(e)}"
+        st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work.")
+        return None
+
+def load_user_email() -> Optional[str]:
+    try:
+        users = db.child("users").get().val()
+        if users:
+            for safe_email, data in users.items():
+                if "email" in data:
+                    st.session_state.debug_message = f"Found email: {data['email']}"
+                    return data["email"]
+        st.session_state.debug_message = "No user email found in Firebase"
+        return None
+    except Exception as e:
+        st.session_state.debug_message = f"Failed to load user email: {str(e)}"
+        st.warning(f"Failed to load user email: {str(e)}. Auto-login may require manual login.")
         return None
 
 def try_auto_login():
+    if not st.session_state.user_email:
+        st.session_state.user_email = load_user_email()
+        st.session_state.debug_message = f"User email set to: {st.session_state.user_email}"
+
+    if st.session_state.user_email and not st.session_state.refresh_token:
+        st.session_state.refresh_token = load_refresh_token(st.session_state.user_email)
+
     if st.session_state.refresh_token and st.session_state.user_email:
         try:
             user = auth.refresh(st.session_state.refresh_token)
@@ -189,13 +217,17 @@ def try_auto_login():
             st.session_state.user_name = st.session_state.user_email.split("@")[0]
             st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
             update_visit_counter()
+            st.session_state.debug_message = f"Auto-login successful for {st.session_state.user_email}"
             return True
         except Exception as e:
+            st.session_state.debug_message = f"Auto-login failed: {str(e)}"
+            st.warning(f"Auto-login failed: {str(e)}. Please log in manually.")
             st.session_state.logged_in = False
             st.session_state.refresh_token = None
             st.session_state.user_email = None
             st.session_state.user_token = None
-            st.warning(f"Auto-login failed: {str(e)}. Please log in manually.")
+    else:
+        st.session_state.debug_message = f"Auto-login skipped: email={st.session_state.user_email}, token={st.session_state.refresh_token}"
     return False
 
 # --- Custom styling ---
@@ -338,7 +370,7 @@ def update_visit_counter():
         db.child("visit_count").set(new_count)
         st.session_state.visit_count = new_count
     except Exception as e:
-        st.warning(f"Failed to update visit counter: {str(e)}. Please check Firebase rules.")
+        st.warning(f"Failed to update visit counter: {str(e)}.")
 
 # --- Load visit counter ---
 def load_visit_counter():
@@ -346,7 +378,7 @@ def load_visit_counter():
         count = db.child("visit_count").get().val() or 0
         st.session_state.visit_count = count
     except Exception as e:
-        st.warning(f"Failed to load visit counter: {str(e)}. Please check Firebase rules.")
+        st.warning(f"Failed to load visit counter: {str(e)}.")
 
 # --- Load chat history ---
 def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
@@ -357,7 +389,7 @@ def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
         return chat_data if chat_data else []
     except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}. Please check Firebase rules.")
+        st.warning(f"Failed to load chat history: {str(e)}.")
         return []
 
 # --- Save chat history ---
@@ -368,20 +400,17 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
     except Exception as e:
-        st.warning(f"Failed to save chat history: {str(e)}. Please check Firebase rules.")
+        st.warning(f"Failed to save chat history: {str(e)}.")
 
 # --- Initial load of visit counter ---
 load_visit_counter()
 
+# --- Debug message display ---
+if "debug_message" in st.session_state:
+    st.sidebar.markdown(f"**Debug**: {st.session_state.debug_message}")
+
 # --- Try auto-login ---
 if not st.session_state.logged_in:
-    if st.session_state.user_email and not st.session_state.refresh_token:
-        try:
-            # Temporary login to get token for loading refresh token
-            temp_user = auth.sign_in_with_email_and_password(st.session_state.user_email, "temp_password")
-            st.session_state.refresh_token = load_refresh_token(st.session_state.user_email, temp_user['idToken'])
-        except:
-            st.session_state.refresh_token = None
     try_auto_login()
 
 # --- Login Page ---
@@ -459,7 +488,7 @@ if not st.session_state.logged_in:
             elif "INVALID_LOGIN_CREDENTIALS" in error_msg:
                 st.error("Incorrect email or password.")
             else:
-                st.error("Authentication failed. Please try again.")
+                st.error(f"Authentication failed: {error_msg}")
 
 # --- Sidebar ---
 if st.session_state.logged_in:
@@ -568,7 +597,7 @@ if st.session_state.logged_in:
                         current_conversation = st.session_state.chat_history[idx]
                         updated_conversation = (
                             f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
-                            f"{current_conversation[1]}\nFollow-up response: {ai_response}"
+                            f"{current_conversation[1]}\nFollow-up response: {ai_response E
                         )
                         st.session_state.chat_history[idx] = updated_conversation
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)

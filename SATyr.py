@@ -220,7 +220,7 @@ st.markdown(
     }
     .logo-container {
         display: flex;
-        align-items: center;
+        align-items: flex-start; /* Changed to flex-start to allow margin-top adjustment */
         margin-bottom: 10px;
     }
     .logo-image {
@@ -368,15 +368,15 @@ if st.session_state.logged_in:
             }
             .logo-container {
                 display: flex;
-                align-items: center;
+                align-items: flex-start; /* Allow margin-top to adjust text position */
                 margin-bottom: 10px;
             }
-            h1.sidebar-title {
+            div[data-testid="stSidebar"] h1.sidebar-title {
                 font-size: 40px !important; /* Adjusted to 40px as requested */
                 margin: 0;
                 line-height: 1;
                 vertical-align: middle; /* Align text vertically with logo */
-                margin-top: -10px; /* Push text up more to level with logo */
+                margin-top: -15px !important; /* Increased to push text up more */
             }
             </style>
             """,

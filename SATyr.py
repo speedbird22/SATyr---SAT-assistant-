@@ -347,13 +347,15 @@ if not st.session_state.logged_in:
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:
     with st.sidebar:
-        # Display logo beside SATyr text
+        # Display logo beside SATyr text using a flex container for alignment
+        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
         col1, col2 = st.columns([1, 3])
         with col1:
             st.image("logo.jpg", clamp=True, output_format="auto")  # Removed width to preserve resolution
         with col2:
             st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
-        # Apply CSS downscaling and updated title size with alignment
+        st.markdown('</div>', unsafe_allow_html=True)
+        # Apply CSS for alignment and updated title size
         st.markdown(
             """
             <style>
@@ -364,12 +366,17 @@ if st.session_state.logged_in:
                 image-rendering: -moz-crisp-edges;
                 image-rendering: crisp-edges;
             }
+            .logo-container {
+                display: flex;
+                align-items: center;
+                margin-bottom: 10px;
+            }
             h1.sidebar-title {
-                font-size: 50px !important; /* Reset to original size */
+                font-size: 40px !important; /* Adjusted to 40px as requested */
                 margin: 0;
                 line-height: 1;
                 vertical-align: middle; /* Align text vertically with logo */
-                margin-top: -5px; /* Push text up slightly to level with logo */
+                margin-top: -10px; /* Push text up more to level with logo */
             }
             </style>
             """,

@@ -232,7 +232,7 @@ st.markdown(
         image-rendering: crisp-edges; /* General enhancement */
     }
     .sidebar-title {
-        font-size: 50px; /* Increased to match the logo's approximate height */
+        font-size: 50px; /* Original size, updated below in sidebar */
         margin: 0;
         line-height: 1;
         vertical-align: middle;
@@ -359,7 +359,7 @@ if st.session_state.logged_in:
             st.image("logo.jpg", clamp=True, output_format="auto")  # Removed width to preserve resolution
         with col2:
             st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
-        # Apply CSS downscaling
+        # Apply CSS downscaling and updated title size
         st.markdown(
             """
             <style>
@@ -369,6 +369,12 @@ if st.session_state.logged_in:
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: -moz-crisp-edges;
                 image-rendering: crisp-edges;
+            }
+            .sidebar-title {
+                font-size: 100px; /* Doubled from 50px */
+                margin: 0;
+                line-height: 1;
+                vertical-align: middle;
             }
             </style>
             """,

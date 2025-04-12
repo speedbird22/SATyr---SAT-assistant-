@@ -31,7 +31,7 @@ if not st.session_state.splash_shown:
                 justify-content: center;
                 align-items: center;
                 z-index: 999999; /* High to cover sidebar */
-                animation: fadeOut 0.5s ease-out 3s forwards; /* Fade out after 3s */
+                animation: fadeOut 0.5s ease-out 1.5s forwards; /* Fade out after 1.5s */
             }
             @keyframes fadeOut {
                 from { opacity: 1; }
@@ -40,24 +40,16 @@ if not st.session_state.splash_shown:
             .splash-logo {
                 max-width: 200px; /* Larger for splash screen */
                 height: auto;
+                margin: auto; /* Center within flex */
+                border: 1px solid rgba(0, 0, 0, 0.2); /* Contrast */
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Stronger shadow */
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: -moz-crisp-edges;
                 image-rendering: crisp-edges;
-                z-index: 1000000; /* Ensure logo is prominent */
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for visibility */
             }
             </style>
             <div id="splash-screen">
-            """,
-            unsafe_allow_html=True
-        )
-        # Use same logo.jpg as sidebar
-        try:
-            st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_container_width=False, channels="RGB")
-        except FileNotFoundError:
-            st.error("logo.jpg not found in project folder. Please ensure it’s in the same directory as this script.")
-        st.markdown(
-            """
+                <img src="logo.jpg" class="splash-logo" alt="SATyr Logo">
             </div>
             <script>
                 console.log("Splash screen loaded");
@@ -66,9 +58,9 @@ if not st.session_state.splash_shown:
                     if (splash) {
                         splash.style.opacity = '0';
                         splash.style.visibility = 'hidden';
-                        console.log("Splash hidden after 3.5s");
+                        console.log("Splash hidden after 2s");
                     }
-                }, 3500); /* Match CSS animation end */
+                }, 2000); /* Match CSS animation end */
             </script>
             """,
             unsafe_allow_html=True

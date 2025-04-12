@@ -78,6 +78,12 @@ class SATyrAI:
         self.session_id = None
         self.user_name = None
         self.context = None
+        self.conn = None
+        self._connect()
+
+    def _connect(self):
+        if self.conn:
+            self.conn.close()
         self.conn = http.client.HTTPSConnection(self.base_url, timeout=10)
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
@@ -97,53 +103,36 @@ class SATyrAI:
             return "[Error] Invalid or empty input text"
 
         try:
-            payload = json.dumps(self._create_payload(text, context=context))
+            payload = json.dumps(self._create_payload(text, context))
             headers = {
                 'Content-Type': 'application/json',
                 'x-api-key': self.api_key
             }
 
+            self._connect()
             self.conn.request("POST", "/v1/message", payload, headers)
             response = self.conn.getresponse()
             response_data = response.read().decode()
 
-            # Log response for debugging
-            if response.status != 200:
-                st.error(f"API Error: Status {response.status} - {response.reason}\nResponse: {response_data}")
-                return f"[Error] API request failed: {response.status} - {response.reason}"
+            if response.status == 200:
+                try:
+                    data = json.loads(response_data)
+                    self.session_id = data.get("SessionId", self.session_id)
+                    self.context = data.get("ai_message", "[Error] No AI message in response")
+                    return self.context
+                except json.JSONDecodeError:
+                    return f"[Error] Invalid JSON response: {response_data}"
+            return f"[Error] API request failed: {response.status} - {response.reason}"
 
-            try:
-                data = json.loads(response_data)
-                self.session_id = data.get("SessionId", self.session_id)
-                ai_message = data.get("ai_message")
-                if not ai_message:
-                    st.error(f"API Error: No 'ai_message' in response\nResponse: {response_data}")
-                    return "[Error] No AI message in response"
-                self.context = ai_message
-                return ai_message
-            except json.JSONDecodeError as e:
-                st.error(f"API Error: Invalid JSON response\nResponse: {response_data}\nError: {str(e)}")
-                return f"[Error] Invalid JSON response: {str(e)}"
-
-        except http.client.HTTPException as e:
-            st.error(f"Network Error: HTTP Exception - {str(e)}")
-            return f"[Network Error] HTTP Exception: {str(e)}"
-        except TimeoutError:
-            st.error("Network Error: Request to API timed out")
-            return "[Network Error] Request timed out"
         except Exception as e:
-            st.error(f"Network Error: Unexpected error - {str(e)}")
-            return f"[Network Error] Unexpected error: {str(e)}"
+            return f"[Error] Network or API error: {str(e)}"
         finally:
-            # Reset connection to avoid stale state
-            self.conn.close()
-            self.conn = http.client.HTTPSConnection(self.base_url, timeout=10)
+            self._connect()
 
     def reset(self):
         self.session_id = None
         self.context = None
-        self.conn.close()
-        self.conn = http.client.HTTPSConnection(self.base_url, timeout=10)
+        self._connect()
 
 # --- Session State Init ---
 if "logged_in" not in st.session_state:
@@ -515,7 +504,7 @@ if st.session_state.logged_in:
 
                 if submitted and user_input:
                     ai_response = st.session_state.chatbot.send_request(user_input)
-                    if ai_response.startswith("[Error]") or ai_response.startswith("[Network Error]"):
+                    if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get response: {ai_response}")
                     else:
                         st.session_state.chat_history.append((user_input, ai_response))
@@ -537,24 +526,19 @@ if st.session_state.logged_in:
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    # Validate inputs
-                    if not follow_up_input.strip():
-                        st.error("Please enter a valid follow-up question.")
+                    ai_response = st.session_state.chatbot.send_request(follow_up_input)
+                    if ai_response.startswith("[Error]"):
+                        st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
-                        # Send follow-up question with the context of the current conversation
-                        ai_response = st.session_state.chatbot.send_request(follow_up_input, context=ai_msg if ai_msg and isinstance(ai_msg, str) else None)
-                        if ai_response.startswith("[Error]") or ai_response.startswith("[Network Error]"):
-                            st.error(f"Failed to get follow-up response: {ai_response}")
-                        else:
-                            # Update the conversation with follow-up question and response
-                            current_conversation = st.session_state.chat_history[idx]
-                            updated_conversation = (
-                                f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
-                                f"{current_conversation[1]}\nFollow-up response: {ai_response}"
-                            )
-                            st.session_state.chat_history[idx] = updated_conversation
-                            # Save updated chat history
-                            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-                            st.rerun()
+                        # Update the conversation with follow-up question and response
+                        current_conversation = st.session_state.chat_history[idx]
+                        updated_conversation = (
+                            f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
+                            f"{current_conversation[1]}\nFollow-up response: {ai_response}"
+                        )
+                        st.session_state.chat_history[idx] = updated_conversation
+                        # Save updated chat history
+                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                        st.rerun()
 
             st.divider()

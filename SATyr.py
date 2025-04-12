@@ -72,6 +72,7 @@ if "user_name" not in st.session_state:
 if "reply_to_index" not in st.session_state:
     st.session_state.reply_to_index = None
 
+
 # --- Custom dark background styling ---
 st.markdown("""
 <style>
@@ -108,19 +109,16 @@ if not st.session_state.logged_in:
         signup = st.button("📝 Sign Up")
 
     if login:
-        st.session_state.login_triggered = True
-
-    if signup:
-        st.session_state.login_triggered = True
-
-    if st.session_state.get("login_triggered"):
         st.session_state.logged_in = True
         st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        st.session_state.pop("login_triggered", None)
-        try:
-            st.experimental_rerun()
-        except Exception:
-            st.stop()
+        # Simulate the button being clicked again
+        st.experimental_rerun()
+
+    if signup:
+        st.session_state.logged_in = True
+        st.session_state.user_name = email.split("@")[0] if email else "Guest"
+        # Simulate the button being clicked again
+        st.experimental_rerun()
 
     st.stop()
 
@@ -148,19 +146,13 @@ with st.sidebar:
             st.stop()
 
     if st.button("🚪 Logout"):
-        st.session_state.logout_triggered = True
-
-    if st.session_state.get("logout_triggered"):
         st.session_state.logged_in = False
         st.session_state.chatbot.reset()
         st.session_state.chat_history = []
         st.session_state.reply_to_index = None
         st.session_state.user_name = None
-        st.session_state.pop("logout_triggered", None)
-        try:
-            st.experimental_rerun()
-        except Exception:
-            st.stop()
+        # Simulate the button being clicked again
+        st.experimental_rerun()
 
 
 # --- Main Chat UI ---

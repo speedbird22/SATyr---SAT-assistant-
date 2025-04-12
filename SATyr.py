@@ -51,23 +51,14 @@ class SATyrAI:
         self.session_id = None
         self.context = None
 
+# Session state: login
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
 # Page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-# Session state init
-if "chatbot" not in st.session_state:
-    st.session_state.chatbot = SATyrAI()
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-if "user_name" not in st.session_state:
-    st.session_state.user_name = None
-
-if "reply_to_index" not in st.session_state:
-    st.session_state.reply_to_index = None
-
-# Custom dark background styling
+# Styling
 st.markdown("""
 <style>
 body {
@@ -87,52 +78,84 @@ input, textarea {
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar
-with st.sidebar:
-    st.title("🧠 SATyr")
-    st.subheader("Conversations")
+# 🔐 LOGIN PAGE
+if not st.session_state.logged_in:
+    st.title("🔐 Welcome to SATyr")
+    st.markdown("Please log in to continue.")
 
-    if st.session_state.chat_history:
-        for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
-            label = f"{user_msg[:20]}..."
-            if st.button(label, key=f"history_{idx}"):
-                st.session_state.reply_to_index = idx
-    else:
-        st.info("No conversations yet.")
+    with st.form("login_form"):
+        email = st.text_input("📧 Email")
+        password = st.text_input("🔑 Password", type="password")
+        login_col, signup_col = st.columns(2)
+        with login_col:
+            login = st.form_submit_button("Login")
+        with signup_col:
+            signup = st.form_submit_button("Sign Up")
 
-    if st.button("🔄 New Session"):
-        st.session_state.chatbot.reset()
-        st.session_state.chat_history = []
-        st.session_state.reply_to_index = None
+    if login or signup:
+        st.session_state.logged_in = True
         st.experimental_rerun()
 
-# Main Chat UI
-st.title("SATyr - Your AI Assistant")
+# 💬 MAIN CHAT UI
+if st.session_state.logged_in:
+    # Session state init
+    if "chatbot" not in st.session_state:
+        st.session_state.chatbot = SATyrAI()
 
-if not st.session_state.user_name:
-    st.session_state.user_name = st.text_input("👤 Enter your name to begin:", value="Guest")
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-if st.session_state.user_name:
-    st.session_state.chatbot.user_name = st.session_state.user_name
+    if "user_name" not in st.session_state:
+        st.session_state.user_name = None
 
-    with st.form("chat_form", clear_on_submit=True):
-        default_prompt = "Type your message here..." if st.session_state.reply_to_index is None else f"Replying to: {st.session_state.chat_history[st.session_state.reply_to_index][1][:50]}..."
-        user_input = st.text_input("💬 Your message:", placeholder=default_prompt)
-        submitted = st.form_submit_button("Send")
-
-    if submitted and user_input:
-        reply_context = None
-        if st.session_state.reply_to_index is not None:
-            reply_context = st.session_state.chat_history[st.session_state.reply_to_index][1]
-        ai_response = st.session_state.chatbot.send_request(user_input, reply_to=reply_context)
-        st.session_state.chat_history.append((user_input, ai_response))
+    if "reply_to_index" not in st.session_state:
         st.session_state.reply_to_index = None
 
-    # Display chat history
-    for idx, (user_msg, ai_msg) in enumerate(reversed(st.session_state.chat_history)):
-        display_idx = len(st.session_state.chat_history) - idx - 1
-        st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
-        st.markdown(f"**🤖 SATyr:** {ai_msg}")
-        if st.button("↩️ Reply", key=f"reply_{display_idx}"):
-            st.session_state.reply_to_index = display_idx
-        st.divider()
+    # Sidebar
+    with st.sidebar:
+        st.title("🧠 SATyr")
+        st.subheader("Conversations")
+
+        if st.session_state.chat_history:
+            for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
+                label = f"{user_msg[:20]}..."
+                if st.button(label, key=f"history_{idx}"):
+                    st.session_state.reply_to_index = idx
+        else:
+            st.info("No conversations yet.")
+
+        if st.button("🔄 New Session"):
+            st.session_state.chatbot.reset()
+            st.session_state.chat_history = []
+            st.session_state.reply_to_index = None
+            st.experimental_rerun()
+
+    # Chat UI
+    st.title("SATyr - Your AI Assistant")
+
+    if not st.session_state.user_name:
+        st.session_state.user_name = st.text_input("👤 Enter your name to begin:", value="Guest")
+
+    if st.session_state.user_name:
+        st.session_state.chatbot.user_name = st.session_state.user_name
+
+        with st.form("chat_form", clear_on_submit=True):
+            default_prompt = "Type your message here..." if st.session_state.reply_to_index is None else f"Replying to: {st.session_state.chat_history[st.session_state.reply_to_index][1][:50]}..."
+            user_input = st.text_input("💬 Your message:", placeholder=default_prompt)
+            submitted = st.form_submit_button("Send")
+
+        if submitted and user_input:
+            reply_context = None
+            if st.session_state.reply_to_index is not None:
+                reply_context = st.session_state.chat_history[st.session_state.reply_to_index][1]
+            ai_response = st.session_state.chatbot.send_request(user_input, reply_to=reply_context)
+            st.session_state.chat_history.append((user_input, ai_response))
+            st.session_state.reply_to_index = None
+
+        for idx, (user_msg, ai_msg) in enumerate(reversed(st.session_state.chat_history)):
+            display_idx = len(st.session_state.chat_history) - idx - 1
+            st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
+            st.markdown(f"**🤖 SATyr:** {ai_msg}")
+            if st.button("↩️ Reply", key=f"reply_{display_idx}"):
+                st.session_state.reply_to_index = display_idx
+            st.divider()

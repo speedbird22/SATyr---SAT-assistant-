@@ -142,12 +142,11 @@ input, textarea {
     z-index: 1001;
 }
 
-/* Heart icon at the bottom of the screen */
+/* Heart icon at the bottom left of the screen */
 #heart-icon {
     position: fixed;
     bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 10px;
     font-size: 30px;
     color: #ff4d4d; /* Red color for heart */
     opacity: 0.5; /* 50% visibility */
@@ -311,7 +310,7 @@ if st.session_state.logged_in:
             st.session_state.user_token = None
             st.rerun()
 
-    # Add translucent heart emoji at the bottom of the screen
+    # Add translucent heart emoji at the bottom left of the screen
     st.markdown('<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
 
 # --- Main Chat UI ---

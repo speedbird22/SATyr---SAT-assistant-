@@ -218,12 +218,10 @@ st.markdown(
         background-color: #262629;
         transform: scale(0.98);
     }
-    .logo-image {
-        max-width: 150px;
-        width: 100%;
-        height: auto;
-        margin: 10px auto;
-        display: block;
+    .sidebar-logo {
+        font-size: 30px; /* Matches the brain emoji size in the sidebar title */
+        text-align: center;
+        margin: 10px 0;
     }
     </style>
     """,
@@ -341,8 +339,8 @@ if not st.session_state.logged_in:
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:
     with st.sidebar:
-        # Display logo
-        st.image("logo.jpg", use_container_width=True, clamp=True, output_format="auto")
+        # Display brain emoji as logo
+        st.markdown('<div class="sidebar-logo">🧠</div>', unsafe_allow_html=True)
         st.title("🧠 SATyr")
         # Display visit counter below SATyr logo
         st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)

@@ -145,40 +145,23 @@ input, textarea {
 /* Heart icon with J at the bottom of sidebar */
 #heart-j {
     position: relative;
-    width: 20px;
-    height: 20px;
+    width: 30px;
+    height: 30px;
     background-color: #ff4d4d; /* Red heart color */
-    transform: rotate(-45deg);
-    margin-top: 10px; /* Space from above content */
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); /* Heart shape */
+    margin-top: 10px;
     display: inline-block;
     margin-left: auto;
     margin-right: auto;
-    margin-bottom: 10px; /* Space from bottom */
-}
-#heart-j:before,
-#heart-j:after {
-    content: "";
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background-color: #ff4d4d;
-    border-radius: 50%;
-}
-#heart-j:before {
-    top: -10px;
-    left: 0;
-}
-#heart-j:after {
-    left: 10px;
-    top: 0;
+    margin-bottom: 10px;
 }
 #heart-j span {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(45deg);
+    transform: translate(-50%, -50%);
     color: white;
-    font-size: 12px;
+    font-size: 18px;
     font-weight: bold;
 }
 

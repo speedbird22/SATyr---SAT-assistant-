@@ -139,7 +139,7 @@ input, textarea {
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 14px;
-    z-index: 1000;
+    z-index: 1001; /* Ensure it stays above other elements */
 }
 
 /* Floating message at the bottom */
@@ -207,6 +207,9 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 # --- Initial load of visit counter ---
 load_visit_counter()
 
+# --- Display visit counter (moved to be visible always) ---
+st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
+
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
@@ -265,9 +268,6 @@ if not st.session_state.logged_in:
                 st.error("This email is already registered. Please log in or use a different email.")
             else:
                 st.error(f"Authentication failed: {str(e)}")
-
-# --- Display visit counter ---
-st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
 
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:

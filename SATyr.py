@@ -122,13 +122,23 @@ if not st.session_state.logged_in:
     email = st.text_input("📧 Email")
     password = st.text_input("🔒 Password", type="password")
 
+    # Email validation
+    email_valid = "@" in email if email else False
+    if email and not email_valid:
+        st.error("Please enter a valid email address containing '@'.")
+
+    # Password validation
+    password_valid = len(password) >= 6 if password else False
+    if password and not password_valid:
+        st.error("Password must be at least 6 characters long.")
+
     col1, col2 = st.columns(2)
     with col1:
         login = st.button("🔓 Login")
     with col2:
         signup = st.button("📝 Sign Up")
 
-    if login or signup:
+    if (login or signup) and email_valid and password_valid:
         st.session_state.show_double_click_message = True
         time.sleep(0.5)
         st.session_state.logged_in = True

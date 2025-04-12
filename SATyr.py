@@ -49,7 +49,16 @@ if not st.session_state.splash_shown:
             }
             </style>
             <div id="splash-screen">
-                <img src="logo.jpg" class="splash-logo" alt="SATyr Logo">
+            """,
+            unsafe_allow_html=True
+        )
+        # Use st.image for logo to match sidebar, ensure it fades
+        try:
+            st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_container_width=False, channels="RGB")
+        except FileNotFoundError:
+            st.error("logo.jpg not found in project folder. Please ensure it’s in the same directory as this script.")
+        st.markdown(
+            """
             </div>
             <script>
                 console.log("Splash screen loaded");

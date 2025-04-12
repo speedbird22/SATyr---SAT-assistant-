@@ -30,7 +30,13 @@ if not st.session_state.splash_shown:
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                z-index: 9999;
+                z-index: 10000; /* Higher to cover sidebar */
+                opacity: 1;
+                transition: opacity 0.5s ease-out; /* Smooth fade-out */
+            }
+            #splash-screen.hidden {
+                opacity: 0;
+                pointer-events: none; /* Prevent interaction after fade */
             }
             .splash-logo {
                 max-width: 200px; /* Larger for splash screen */
@@ -44,7 +50,7 @@ if not st.session_state.splash_shown:
             """,
             unsafe_allow_html=True
         )
-        # Verify logo.jpg exists and display it
+        # Use same logo.jpg as sidebar with error handling
         try:
             st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_column_width=False)
         except FileNotFoundError:
@@ -56,17 +62,19 @@ if not st.session_state.splash_shown:
                 setTimeout(function() {
                     var splash = document.getElementById('splash-screen');
                     if (splash) {
-                        splash.style.display = 'none';
+                        splash.classList.add('hidden');
+                        // Fully remove after transition
+                        setTimeout(function() {
+                            splash.style.display = 'none';
+                        }, 500); // Match transition duration
                     }
                 }, 3000);
             </script>
             """,
             unsafe_allow_html=True
         )
-    # Mark splash as shown without rerun to avoid refresh issues
     st.session_state.splash_shown = True
-    # Debug: Confirm splash code ran
-    # st.write("(Debug: Splash screen code executed)")  # Uncomment to verify
+    # No rerun to avoid refresh issues; JavaScript handles fade-out
 
 # Load environment variables from .env file
 load_dotenv()

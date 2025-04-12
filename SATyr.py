@@ -224,9 +224,12 @@ st.markdown(
         margin-bottom: 10px;
     }
     .logo-image {
-        width: 50px; /* Downscaled size, adjust as needed */
+        max-width: 50px; /* Downscaled size, maintains aspect ratio */
         height: auto;
         margin-right: 10px;
+        image-rendering: -webkit-optimize-contrast; /* Enhance sharpness in Webkit browsers */
+        image-rendering: -moz-crisp-edges; /* Enhance sharpness in Firefox */
+        image-rendering: crisp-edges; /* General enhancement */
     }
     </style>
     """,
@@ -347,9 +350,24 @@ if st.session_state.logged_in:
         # Display logo beside SATyr text
         col1, col2 = st.columns([1, 3])
         with col1:
-            st.image("logo.jpg", width=50, clamp=True, output_format="auto")  # Downscaled to 50px width
+            st.image("logo.jpg", clamp=True, output_format="auto")  # Removed width to preserve resolution
         with col2:
             st.title("SATyr")
+        # Apply CSS downscaling
+        st.markdown(
+            """
+            <style>
+            [data-testid="stImage"] img {
+                max-width: 50px; /* Downscaled size, maintains aspect ratio */
+                height: auto;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
         # Display visit counter below logo and title
         st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
         st.subheader("Conversations")

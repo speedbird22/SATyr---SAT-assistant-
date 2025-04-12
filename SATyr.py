@@ -164,12 +164,17 @@ if "refresh_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
+if "debug_message" not in st.session_state:
+    st.session_state.debug_message = ""
+
 # --- Helper Functions for Auto-Login ---
 def save_refresh_token(email: str, refresh_token: str, token: str):
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).child("refresh_token").set(refresh_token, token)
-        db.child("users").child(safe_email).child("email").set(email, token)
+        db.child("users").child(safe_email).set({
+            "email": email,
+            "refresh_token": refresh_token
+        }, token)
         st.session_state.debug_message = f"Saved refresh token for {safe_email}"
     except Exception as e:
         st.session_state.debug_message = f"Failed to save refresh token: {str(e)}"
@@ -178,9 +183,12 @@ def save_refresh_token(email: str, refresh_token: str, token: str):
 def load_refresh_token(email: str) -> Optional[str]:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        token = db.child("users").child(safe_email).child("refresh_token").get().val()
-        st.session_state.debug_message = f"Loaded refresh token for {safe_email}: {token[:10]}..."
-        return token
+        data = db.child("users").child(safe_email).get().val()
+        if data and "refresh_token" in data:
+            st.session_state.debug_message = f"Loaded refresh token for {safe_email}"
+            return data["refresh_token"]
+        st.session_state.debug_message = f"No refresh token found for {safe_email}"
+        return None
     except Exception as e:
         st.session_state.debug_message = f"Failed to load refresh token: {str(e)}"
         st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work.")
@@ -198,18 +206,17 @@ def load_user_email() -> Optional[str]:
         return None
     except Exception as e:
         st.session_state.debug_message = f"Failed to load user email: {str(e)}"
-        st.warning(f"Failed to load user email: {str(e)}. Auto-login may require manual login.")
+        st.warning(f"Failed to load user email: {str(e)}.")
         return None
 
 def try_auto_login():
     if not st.session_state.user_email:
         st.session_state.user_email = load_user_email()
-        st.session_state.debug_message = f"User email set to: {st.session_state.user_email}"
 
-    if st.session_state.user_email and not st.session_state.refresh_token:
+    if st.session_state.user_email:
         st.session_state.refresh_token = load_refresh_token(st.session_state.user_email)
 
-    if st.session_state.refresh_token and st.session_state.user_email:
+    if st.session_state.user_email and st.session_state.refresh_token:
         try:
             user = auth.refresh(st.session_state.refresh_token)
             st.session_state.user_token = user['idToken']
@@ -406,7 +413,7 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 load_visit_counter()
 
 # --- Debug message display ---
-if "debug_message" in st.session_state:
+if "debug_message" in st.session_state and st.session_state.debug_message:
     st.sidebar.markdown(f"**Debug**: {st.session_state.debug_message}")
 
 # --- Try auto-login ---
@@ -597,7 +604,7 @@ if st.session_state.logged_in:
                         current_conversation = st.session_state.chat_history[idx]
                         updated_conversation = (
                             f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
-                            f"{current_conversation[1]}\nFollow-up response: {ai_response E
+                            f"{current_conversation[1]}\nFollow-up response: {ai_response}"
                         )
                         st.session_state.chat_history[idx] = updated_conversation
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)

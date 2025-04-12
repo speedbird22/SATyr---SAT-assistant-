@@ -142,17 +142,16 @@ input, textarea {
     z-index: 1001;
 }
 
-/* Heart icon with 50% visibility at the bottom of sidebar */
+/* Heart icon at the bottom of the screen */
 #heart-icon {
-    position: relative;
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 30px;
     color: #ff4d4d; /* Red color for heart */
     opacity: 0.5; /* 50% visibility */
-    margin-top: 10px;
-    display: inline-block;
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 10px;
+    z-index: 1000;
 }
 
 /* Floating message at the bottom */
@@ -312,8 +311,8 @@ if st.session_state.logged_in:
             st.session_state.user_token = None
             st.rerun()
 
-        # Add translucent heart emoji at the bottom of sidebar
-        st.markdown('<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
+    # Add translucent heart emoji at the bottom of the screen
+    st.markdown('<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:

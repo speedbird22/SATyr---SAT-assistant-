@@ -232,7 +232,7 @@ st.markdown(
         image-rendering: crisp-edges; /* General enhancement */
     }
     .sidebar-title {
-        font-size: 40px; /* Adjusted to match approximate height of 50px logo */
+        font-size: 50px; /* Increased to match the logo's approximate height */
         margin: 0;
         line-height: 1;
         vertical-align: middle;

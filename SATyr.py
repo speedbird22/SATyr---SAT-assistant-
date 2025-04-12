@@ -220,7 +220,7 @@ st.markdown(
     }
     .logo-container {
         display: flex;
-        align-items: flex-start; /* Changed to flex-start to allow margin-top adjustment */
+        align-items: flex-start; /* Allow margin-top to adjust text position */
         margin-bottom: 10px;
     }
     .logo-image {
@@ -372,11 +372,11 @@ if st.session_state.logged_in:
                 margin-bottom: 10px;
             }
             div[data-testid="stSidebar"] h1.sidebar-title {
-                font-size: 40px !important; /* Adjusted to 40px as requested */
+                font-size: 45px !important; /* Current size */
                 margin: 0;
                 line-height: 1;
                 vertical-align: middle; /* Align text vertically with logo */
-                margin-top: -15px !important; /* Increased to push text up more */
+                margin-top: -15px !important; /* Maintain upward adjustment */
             }
             </style>
             """,
@@ -416,7 +416,7 @@ if st.session_state.logged_in:
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:
-    st.title("SATyr - Your AI Assistant")
+    st.title("SATyr - ur SAT saviour")  # Updated title
 
     if st.session_state.user_name:
         st.session_state.chatbot.user_name = st.session_state.user_name

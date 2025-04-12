@@ -6,6 +6,7 @@ import time
 from dotenv import load_dotenv
 import os
 import pyrebase
+from colors import COLORS  # Import colors
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
@@ -14,26 +15,26 @@ st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 
-# Display splash screen (baby blue, no logo, reduced duration)
+# Display splash screen (color from colors.py, no logo, 1s duration)
 if not st.session_state.splash_shown:
     with st.container():
         st.markdown(
-            """
+            f"""
             <style>
-            #splash-screen {
+            #splash-screen {{
                 position: fixed;
                 top: 0;
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background-color: #89CFF0; /* Baby blue */
+                background-color: {COLORS['splash_screen']}; /* Color from colors.py */
                 z-index: 999999; /* High to cover sidebar */
                 animation: fadeOut 0.25s ease-out 0.75s forwards; /* Fade out after 0.75s */
-            }
-            @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; visibility: hidden; } /* Remove after fade */
-            }
+            }}
+            @keyframes fadeOut {{
+                from {{ opacity: 1; }}
+                to {{ opacity: 0; visibility: hidden; }} /* Remove after fade */
+            }}
             </style>
             <div id="splash-screen"></div>
             """,
@@ -146,59 +147,59 @@ if "visit_count" not in st.session_state:
 
 # --- Custom styling including visit counter, heart icon, buttons, and logo ---
 st.markdown(
-    """
+    f"""
     <style>
-    body {
-        background-color: #202123;
-        color: #ececf1;
-    }
-    .sidebar .sidebar-content {
-        background-color: #171717;
-    }
-    .block-container {
+    body {{
+        background-color: {COLORS['app_background']}; /* Dark gray */
+        color: {COLORS['text_color']}; /* Light gray */
+    }}
+    .sidebar .sidebar-content {{
+        background-color: {COLORS['sidebar_background']}; /* Darker gray */
+    }}
+    .block-container {{
         padding: 2rem 2rem 2rem;
-    }
-    input, textarea {
-        background-color: #2d2d30 !important;
+    }}
+    input, textarea {{
+        background-color: {COLORS['input_background']} !important; /* Dark gray */
         color: white !important;
-    }
-    #visit-counter {
+    }}
+    #visit-counter {{
         position: relative;
-        background-color: #4CAF50;
-        color: white;
+        background-color: {COLORS['visit_counter_background']}; /* Green */
+        color: {COLORS['visit_counter_text']}; /* White */
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 14px;
         margin-top: 5px;
         display: inline-block;
         z-index: 1001;
-    }
-    #heart-icon {
+    }}
+    #heart-icon {{
         position: fixed;
         bottom: 10px;
         left: 10px;
         font-size: 30px;
-        color: #ff4d4d;
+        color: {COLORS['heart_icon']}; /* Red */
         opacity: 0.5;
         z-index: 1000;
         display: none;
-    }
-    [data-testid="stSidebar"]:not([style*="width: 0px"]) ~ #heart-icon {
+    }}
+    [data-testid="stSidebar"]:not([style*="width: 0px"]) ~ #heart-icon {{
         display: block;
-    }
-    #floating-message {
+    }}
+    #floating-message {{
         position: fixed;
         bottom: 10px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.8);
+        background-color: {COLORS['floating_message_background']}; /* Semi-transparent black */
         color: white;
         padding: 10px;
         border-radius: 5px;
         display: none;
         z-index: 1000;
-    }
-    .stButton > button {
+    }}
+    .stButton > button {{
         border: none;
         border-radius: 8px;
         padding: 8px 16px;
@@ -207,64 +208,64 @@ st.markdown(
         transition: all 0.2s ease;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         width: 100%;
-    }
+    }}
     div[data-testid="stHorizontalBlock"] .stButton > button,
-    form .stButton > button {
-        background-color: #4CAF50;
+    form .stButton > button {{
+        background-color: {COLORS['button_form_default']}; /* Green */
         color: white;
-    }
+    }}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
-    form .stButton > button:hover {
-        background-color: #45a049;
+    form .stButton > button:hover {{
+        background-color: {COLORS['button_form_hover']}; /* Darker green */
         transform: scale(1.05);
-    }
+    }}
     div[data-testid="stHorizontalBlock"] .stButton > button:active,
-    form .stButton > button:active {
-        background-color: #3d8b40;
+    form .stButton > button:active {{
+        background-color: {COLORS['button_form_active']}; /* Even darker green */
         transform: scale(0.98);
-    }
+    }}
     .stSidebar .stButton > button:not([id*="history"]),
-    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {
-        background-color: #555555;
+    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
+        background-color: {COLORS['button_sidebar_default']}; /* Gray */
         color: white;
-    }
+    }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
-    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {
-        background-color: #666666;
+    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
+        background-color: {COLORS['button_sidebar_hover']}; /* Lighter gray */
         transform: scale(1.05);
-    }
+    }}
     .stSidebar .stButton > button:not([id*="history"]):active,
-    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {
-        background-color: #4a4a4a;
+    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {{
+        background-color: {COLORS['button_sidebar_active']}; /* Darker gray */
         transform: scale(0.98);
-    }
-    .stSidebar .stButton[id*="history"] > button {
-        background-color: #2d2d30;
-        color: #ececf1;
+    }}
+    .stSidebar .stButton[id*="history"] > button {{
+        background-color: {COLORS['button_history_default']}; /* Dark gray */
+        color: {COLORS['text_color']}; /* Light gray */
         font-size: 13px;
         padding: 6px 12px;
-    }
-    .stSidebar .stButton[id*="history"] > button:hover {
-        background-color: #3a3a3d;
+    }}
+    .stSidebar .stButton[id*="history"] > button:hover {{
+        background-color: {COLORS['button_history_hover']}; /* Slightly lighter gray */
         transform: scale(1.02);
-    }
-    .stSidebar .stButton[id*="history"] > button:active {
-        background-color: #262629;
+    }}
+    .stSidebar .stButton[id*="history"] > button:active {{
+        background-color: {COLORS['button_history_active']}; /* Darker gray */
         transform: scale(0.98);
-    }
-    .logo-container {
+    }}
+    .logo-container {{
         display: flex;
         align-items: flex-start; /* Allow margin-top to adjust text position */
         margin-bottom: 10px;
-    }
-    .logo-image {
+    }}
+    .logo-image {{
         max-width: 50px; /* Downscaled size for sidebar */
         height: auto;
         margin-right: 10px;
         image-rendering: -webkit-optimize-contrast;
         image-rendering: -moz-crisp-edges;
         image-rendering: crisp-edges;
-    }
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -446,7 +447,7 @@ if st.session_state.logged_in:
             st.rerun()
 
     # Add translucent heart emoji at the bottom left of the screen
-    st.markdown('<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
+    st.markdown(f'<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:

@@ -232,7 +232,7 @@ st.markdown(
 
 # --- Show the "Please double-click" message if needed ---
 if st.session_state.show_double_click_message:
-    st.markdown('<div id="floating-message">Please double-click the button.</div>',主营店, unsafe_allow_html=True)
+    st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
     time.sleep(2)
     st.session_state.show_double_click_message = False
 

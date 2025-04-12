@@ -154,8 +154,8 @@ input, textarea {
     display: none; /* Hidden by default */
 }
 
-/* Show heart icon only when sidebar is visible */
-.stSidebar[style*="display: block"] ~ #heart-icon {
+/* Show heart icon only when sidebar is visible (not collapsed) */
+[data-testid="stSidebar"]:not([style*="width: 0px"]) ~ #heart-icon {
     display: block;
 }
 

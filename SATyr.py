@@ -1,7 +1,7 @@
 import streamlit as st
 import http.client
 import json
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Tuple
 import time
 from dotenv import load_dotenv
 import os
@@ -29,6 +29,7 @@ firebase_config = {
 try:
     firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
+    db = firebase.database()  # Initialize the database
     st.success("Firebase initialized successfully!")
 except Exception as e:
     st.error(f"Failed to initialize Firebase: {str(e)}")
@@ -104,6 +105,9 @@ if "show_double_click_message" not in st.session_state:
 if "user_email" not in st.session_state:
     st.session_state.user_email = None
 
+if "user_token" not in st.session_state:
+    st.session_state.user_token = None
+
 # --- Custom dark background styling ---
 st.markdown("""
 <style>
@@ -144,6 +148,28 @@ if st.session_state.show_double_click_message:
     time.sleep(2)
     st.session_state.show_double_click_message = False
 
+# --- Load chat history on login ---
+def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
+    if not st.session_state.logged_in:  # Avoid access before login
+        return []
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
+        return chat_data if chat_data else []
+    except Exception as e:
+        st.warning(f"Failed to load chat history: {str(e)}. Starting with empty history.")
+        return []
+
+# --- Save chat history on logout or update ---
+def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
+    if not st.session_state.logged_in:  # Avoid access before login
+        return
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
+    except Exception as e:
+        st.error(f"Failed to save chat history: {str(e)}")
+
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
@@ -175,12 +201,20 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
+                # Get authentication token
+                user_info = auth.get_account_info(user['idToken'])
+                st.session_state.user_token = user['idToken']
+                # Load chat history after login
+                st.session_state.chat_history = load_chat_history(email, st.session_state.user_token)
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
                 user = auth.create_user_with_email_and_password(email, password)
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
+                # Get authentication token after signup
+                login_response = auth.sign_in_with_email_and_password(email, password)
+                st.session_state.user_token = login_response['idToken']
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
@@ -212,12 +246,14 @@ if st.session_state.logged_in:
             st.rerun()
 
         if st.button("🚪 Logout"):
+            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)  # Save history on logout
             st.session_state.logged_in = False
             st.session_state.chatbot.reset()
             st.session_state.chat_history = []
             st.session_state.reply_to_index = None
             st.session_state.user_name = None
             st.session_state.user_email = None
+            st.session_state.user_token = None
             st.rerun()
 
 # --- Main Chat UI ---
@@ -238,6 +274,8 @@ if st.session_state.logged_in:
                 reply_context = st.session_state.chat_history[st.session_state.reply_to_index][1]
             ai_response = st.session_state.chatbot.send_request(user_input, reply_to=reply_context)
             st.session_state.chat_history.append((user_input, ai_response))
+            # Save updated chat history
+            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
             st.session_state.reply_to_index = None
 
         # Display chat history

@@ -344,6 +344,26 @@ if not st.session_state.logged_in:
     with col2:
         signup = st.button("📝 Sign Up")
 
+    # Forgot Password Section
+    with st.expander("Forgot Password?"):
+        reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
+        reset_button = st.button("🔄 Send Reset Email")
+        if reset_button and reset_email:
+            if "@" not in reset_email:
+                st.error("Please enter a valid email address containing '@'.")
+            else:
+                try:
+                    auth.send_password_reset_email(reset_email)
+                    st.success("Password reset email sent! Check your inbox.")
+                except Exception as e:
+                    error_msg = str(e)
+                    if "EMAIL_NOT_FOUND" in error_msg:
+                        st.error("No account found with this email.")
+                    elif "INVALID_EMAIL" in error_msg:
+                        st.error("Invalid email address.")
+                    else:
+                        st.error(f"Failed to send reset email: {error_msg}")
+
     if (login or signup) and email_valid and password_valid:
         try:
             if login:

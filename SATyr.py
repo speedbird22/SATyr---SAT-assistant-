@@ -124,8 +124,8 @@ if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
     st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
 
-    email = st.text_input("📧 Email")
-    password = st.text_input("🔒 Password", type="password")
+    email = st.text_input("📇 Email")
+    password = st.text_input("🔐 Password", type="password")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -140,36 +140,37 @@ if not st.session_state.logged_in:
         st.session_state.user_name = email.split("@")[0] if email else "Guest"
         st.stop()  # Stop the execution so the session state is set before moving on
 
+
 # --- Sidebar ---
-with st.sidebar:
-    st.title("🧠 SATyr")
-    st.subheader("Conversations")
+if st.session_state.logged_in:
+    with st.sidebar:
+        st.title("🧠 SATyr")
+        st.subheader("Conversations")
 
-    if st.session_state.chat_history:
-        for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
-            label = f"{user_msg[:20]}..."
-            if st.button(label, key=f"history_{idx}"):
-                st.session_state.reply_to_index = idx
-    else:
-        st.info("No conversations yet.")
+        if st.session_state.chat_history:
+            for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
+                label = f"{user_msg[:20]}..."
+                if st.button(label, key=f"history_{idx}"):
+                    st.session_state.reply_to_index = idx
+        else:
+            st.info("No conversations yet.")
 
-    if st.button("🔄 New Session"):
-        st.session_state.chatbot.reset()
-        st.session_state.chat_history = []
-        st.session_state.reply_to_index = None
-        try:
+        if st.button("🔄 New Session"):
+            st.session_state.chatbot.reset()
+            st.session_state.chat_history = []
+            st.session_state.reply_to_index = None
+            try:
+                st.experimental_rerun()
+            except Exception:
+                st.stop()
+
+        if st.button("🚪 Logout"):
+            st.session_state.logged_in = False
+            st.session_state.chatbot.reset()
+            st.session_state.chat_history = []
+            st.session_state.reply_to_index = None
+            st.session_state.user_name = None
             st.experimental_rerun()
-        except Exception:
-            st.stop()
-
-    if st.button("🚪 Logout"):
-        st.session_state.logged_in = False
-        st.session_state.chatbot.reset()
-        st.session_state.chat_history = []
-        st.session_state.reply_to_index = None
-        st.session_state.user_name = None
-        # Logout should be handled properly
-        st.experimental_rerun()
 
 
 # --- Main Chat UI ---
@@ -195,7 +196,7 @@ if st.session_state.user_name:
     for idx, (user_msg, ai_msg) in enumerate(reversed(st.session_state.chat_history)):
         display_idx = len(st.session_state.chat_history) - idx - 1
         st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
-        st.markdown(f"**🤖 SATyr:** {ai_msg}")
+        st.markdown(f"**🧠 SATyr:** {ai_msg}")
         if st.button("↩️ Reply", key=f"reply_{display_idx}"):
             st.session_state.reply_to_index = display_idx
         st.divider()

@@ -159,8 +159,47 @@ if "user_email" not in st.session_state:
 if "user_token" not in st.session_state:
     st.session_state.user_token = None
 
+if "refresh_token" not in st.session_state:
+    st.session_state.refresh_token = None
+
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
+
+# --- Helper Functions for Auto-Login ---
+def save_refresh_token(email: str, refresh_token: str, token: str):
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("refresh_token").set(refresh_token, token)
+    except Exception as e:
+        st.warning(f"Failed to save refresh token: {str(e)}")
+
+def load_refresh_token(email: str, token: str) -> Optional[str]:
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        return db.child("users").child(safe_email).child("refresh_token").get(token=token).val()
+    except Exception as e:
+        st.warning(f"Failed to load refresh token: {str(e)}")
+        return None
+
+def try_auto_login():
+    if st.session_state.refresh_token and st.session_state.user_email:
+        try:
+            # Refresh the ID token using the refresh token
+            user = auth.refresh(st.session_state.refresh_token)
+            st.session_state.user_token = user['idToken']
+            st.session_state.logged_in = True
+            st.session_state.user_name = st.session_state.user_email.split("@")[0]
+            # Load chat history
+            st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
+            update_visit_counter()
+            return True
+        except Exception as e:
+            st.session_state.logged_in = False
+            st.session_state.refresh_token = None
+            st.session_state.user_email = None
+            st.session_state.user_token = None
+            st.warning(f"Auto-login failed: {str(e)}")
+    return False
 
 # --- Custom styling including visit counter, heart icon, buttons, and logo ---
 st.markdown(
@@ -337,6 +376,16 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 # --- Initial load of visit counter ---
 load_visit_counter()
 
+# --- Try auto-login ---
+if not st.session_state.logged_in:
+    # Check for stored email and refresh token in session state or Firebase
+    if not st.session_state.user_email and not st.session_state.refresh_token:
+        # Placeholder for persistent storage check (e.g., browser cookies or local file)
+        # For now, rely on Firebase if email is known; here we assume no prior email
+        pass
+    else:
+        try_auto_login()
+
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
@@ -388,11 +437,12 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
-                # Get authentication token
-                user_info = auth.get_account_info(user['idToken'])
                 st.session_state.user_token = user['idToken']
+                st.session_state.refresh_token = user['refreshToken']
+                # Save refresh token to Firebase
+                save_refresh_token(email, user['refreshToken'], user['idToken'])
                 # Load chat history after login
-                st.session_state.chat_history = load_chat_history(email, st.session_state.user_token)
+                st.session_state.chat_history = load_chat_history(email, user['idToken'])
                 # Update visit counter
                 update_visit_counter()
                 st.success(f"Logged in as {st.session_state.user_name}")
@@ -404,6 +454,9 @@ if not st.session_state.logged_in:
                 # Get authentication token after signup
                 login_response = auth.sign_in_with_email_and_password(email, password)
                 st.session_state.user_token = login_response['idToken']
+                st.session_state.refresh_token = login_response['refreshToken']
+                # Save refresh token to Firebase
+                save_refresh_token(email, login_response['refreshToken'], login_response['idToken'])
                 # Update visit counter
                 update_visit_counter()
                 st.success(f"Account created for {st.session_state.user_name}")
@@ -484,6 +537,7 @@ if st.session_state.logged_in:
             st.session_state.user_name = None
             st.session_state.user_email = None
             st.session_state.user_token = None
+            st.session_state.refresh_token = None
             st.rerun()
 
     # Add translucent heart emoji at the bottom left of the screen

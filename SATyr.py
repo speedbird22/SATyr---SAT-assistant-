@@ -179,7 +179,7 @@ if not st.session_state.logged_in:
                 st.session_state.user_name = email.split("@")[0]
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
-                auth.create_user_with_email_and_password(email, password)
+                user = auth.create_user_with_email_and_password(email, password)
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
@@ -189,7 +189,10 @@ if not st.session_state.logged_in:
             time.sleep(0.5)
             st.rerun()
         except Exception as e:
-            st.error(f"Authentication failed: {str(e)}")
+            if "EMAIL_EXISTS" in str(e):
+                st.error("This email is already registered. Please log in or use a different email.")
+            else:
+                st.error(f"Authentication failed: {str(e)}")
 
 # --- Function to send welcome email ---
 def send_welcome_email(to_email):

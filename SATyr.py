@@ -27,28 +27,27 @@ if not st.session_state.splash_shown:
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background-color: {COLORS['splash_screen']}; /* Color from colors.py */
-                z-index: 999999; /* High to cover sidebar */
-                animation: fadeOut 0.25s ease-out 0.75s forwards; /* Fade out after 0.75s */
+                background-color: {COLORS['splash_screen']};
+                z-index: 999999;
+                animation: fadeOut 0.25s ease-out 0.75s forwards;
             }}
             @keyframes fadeOut {{
                 from {{ opacity: 1; }}
-                to {{ opacity: 0; visibility: hidden; }} /* Remove after fade */
+                to {{ opacity: 0; visibility: hidden; }}
             }}
             </style>
             <div id="splash-screen"></div>
             """,
             unsafe_allow_html=True
         )
-    # Use time.sleep to ensure the splash screen is visible for the full duration
-    time.sleep(1)  # Total duration: 0.75s display + 0.25s fade
+    time.sleep(1)
     st.session_state.splash_shown = True
-    st.rerun()  # Rerun to remove splash screen
+    st.rerun()
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Firebase configuration with fallback for missing databaseURL
+# Firebase configuration
 firebase_config = {
     "apiKey": os.getenv("API_KEY", ""),
     "authDomain": os.getenv("AUTH_DOMAIN", ""),
@@ -57,14 +56,14 @@ firebase_config = {
     "messagingSenderId": os.getenv("MESSAGING_SENDER_ID", ""),
     "appId": os.getenv("APP_ID", ""),
     "measurementId": os.getenv("MEASUREMENT_ID", ""),
-    "databaseURL": os.getenv("DATABASE_URL", "")  # Should be https://satyr-fe4f3-default-rtdb.firebaseio.com
+    "databaseURL": os.getenv("DATABASE_URL", "")
 }
 
-# Initialize Firebase with error handling
+# Initialize Firebase
 try:
     firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
-    db = firebase.database()  # Initialize the database
+    db = firebase.database()
 except Exception as e:
     st.error(f"Failed to initialize Firebase: {str(e)}")
     st.stop()
@@ -171,25 +170,23 @@ def save_refresh_token(email: str, refresh_token: str, token: str):
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("refresh_token").set(refresh_token, token)
     except Exception as e:
-        st.warning(f"Failed to save refresh token: {str(e)}")
+        st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work. Please set Firebase rules in the Console.")
 
 def load_refresh_token(email: str, token: str) -> Optional[str]:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         return db.child("users").child(safe_email).child("refresh_token").get(token=token).val()
     except Exception as e:
-        st.warning(f"Failed to load refresh token: {str(e)}")
+        st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work. Please set Firebase rules in the Console.")
         return None
 
 def try_auto_login():
     if st.session_state.refresh_token and st.session_state.user_email:
         try:
-            # Refresh the ID token using the refresh token
             user = auth.refresh(st.session_state.refresh_token)
             st.session_state.user_token = user['idToken']
             st.session_state.logged_in = True
             st.session_state.user_name = st.session_state.user_email.split("@")[0]
-            # Load chat history
             st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
             update_visit_counter()
             return True
@@ -198,31 +195,31 @@ def try_auto_login():
             st.session_state.refresh_token = None
             st.session_state.user_email = None
             st.session_state.user_token = None
-            st.warning(f"Auto-login failed: {str(e)}")
+            st.warning(f"Auto-login failed: {str(e)}. Please log in manually.")
     return False
 
-# --- Custom styling including visit counter, heart icon, buttons, and logo ---
+# --- Custom styling ---
 st.markdown(
     f"""
     <style>
     body {{
-        background-color: {COLORS['app_background']}; /* Dark gray */
-        color: {COLORS['text_color']}; /* Light gray */
+        background-color: {COLORS['app_background']};
+        color: {COLORS['text_color']};
     }}
     .sidebar .sidebar-content {{
-        background-color: {COLORS['sidebar_background']}; /* Darker gray */
+        background-color: {COLORS['sidebar_background']};
     }}
     .block-container {{
         padding: 2rem 2rem 2rem;
     }}
     input, textarea {{
-        background-color: {COLORS['input_background']} !important; /* Dark gray */
+        background-color: {COLORS['input_background']} !important;
         color: white !important;
     }}
     #visit-counter {{
         position: relative;
-        background-color: {COLORS['visit_counter_background']}; /* Green */
-        color: {COLORS['visit_counter_text']}; /* White */
+        background-color: {COLORS['visit_counter_background']};
+        color: {COLORS['visit_counter_text']};
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 14px;
@@ -235,7 +232,7 @@ st.markdown(
         bottom: 10px;
         left: 10px;
         font-size: 30px;
-        color: {COLORS['heart_icon']}; /* Red */
+        color: {COLORS['heart_icon']};
         opacity: 0.5;
         z-index: 1000;
         display: none;
@@ -248,7 +245,7 @@ st.markdown(
         bottom: 10px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: {COLORS['floating_message_background']}; /* Semi-transparent black */
+        background-color: {COLORS['floating_message_background']};
         color: white;
         padding: 10px;
         border-radius: 5px;
@@ -267,55 +264,55 @@ st.markdown(
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button,
     form .stButton > button {{
-        background-color: {COLORS['button_form_default']}; /* Green */
+        background-color: {COLORS['button_form_default']};
         color: white;
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
     form .stButton > button:hover {{
-        background-color: {COLORS['button_form_hover']}; /* Darker green */
+        background-color: {COLORS['button_form_hover']};
         transform: scale(1.05);
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:active,
     form .stButton > button:active {{
-        background-color: {COLORS['button_form_active']}; /* Even darker green */
+        background-color: {COLORS['button_form_active']};
         transform: scale(0.98);
     }}
     .stSidebar .stButton > button:not([id*="history"]),
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
-        background-color: {COLORS['button_sidebar_default']}; /* Gray */
+        background-color: {COLORS['button_sidebar_default']};
         color: white;
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {COLORS['button_sidebar_hover']}; /* Lighter gray */
+        background-color: {COLORS['button_sidebar_hover']};
         transform: scale(1.05);
     }}
     .stSidebar .stButton > button:not([id*="history"]):active,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {{
-        background-color: {COLORS['button_sidebar_active']}; /* Darker gray */
+        background-color: {COLORS['button_sidebar_active']};
         transform: scale(0.98);
     }}
     .stSidebar .stButton[id*="history"] > button {{
-        background-color: {COLORS['button_history_default']}; /* Dark gray */
-        color: {COLORS['text_color']}; /* Light gray */
+        background-color: {COLORS['button_history_default']};
+        color: {COLORS['text_color']};
         font-size: 13px;
         padding: 6px 12px;
     }}
     .stSidebar .stButton[id*="history"] > button:hover {{
-        background-color: {COLORS['button_history_hover']}; /* Slightly lighter gray */
+        background-color: {COLORS['button_history_hover']};
         transform: scale(1.02);
     }}
     .stSidebar .stButton[id*="history"] > button:active {{
-        background-color: {COLORS['button_history_active']}; /* Darker gray */
+        background-color: {COLORS['button_history_active']};
         transform: scale(0.98);
     }}
     .logo-container {{
         display: flex;
-        align-items: flex-start; /* Allow margin-top to adjust text position */
+        align-items: flex-start;
         margin-bottom: 10px;
     }}
     .logo-image {{
-        max-width: 50px; /* Downscaled size for sidebar */
+        max-width: 50px;
         height: auto;
         margin-right: 10px;
         image-rendering: -webkit-optimize-contrast;
@@ -327,7 +324,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Show the "Please double-click" message if needed ---
+# --- Show double-click message ---
 if st.session_state.show_double_click_message:
     st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
     time.sleep(2)
@@ -341,7 +338,7 @@ def update_visit_counter():
         db.child("visit_count").set(new_count)
         st.session_state.visit_count = new_count
     except Exception as e:
-        st.error(f"Failed to update visit counter: {str(e)}")
+        st.warning(f"Failed to update visit counter: {str(e)}. Please check Firebase rules.")
 
 # --- Load visit counter ---
 def load_visit_counter():
@@ -349,9 +346,9 @@ def load_visit_counter():
         count = db.child("visit_count").get().val() or 0
         st.session_state.visit_count = count
     except Exception as e:
-        st.error(f"Failed to load visit counter: {str(e)}")
+        st.warning(f"Failed to load visit counter: {str(e)}. Please check Firebase rules.")
 
-# --- Load chat history on login ---
+# --- Load chat history ---
 def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
     if not st.session_state.logged_in:
         return []
@@ -360,10 +357,10 @@ def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
         return chat_data if chat_data else []
     except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}. Starting with empty history.")
+        st.warning(f"Failed to load chat history: {str(e)}. Please check Firebase rules.")
         return []
 
-# --- Save chat history on logout or update ---
+# --- Save chat history ---
 def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
     if not st.session_state.logged_in:
         return
@@ -371,20 +368,21 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
     except Exception as e:
-        st.error(f"Failed to save chat history: {str(e)}")
+        st.warning(f"Failed to save chat history: {str(e)}. Please check Firebase rules.")
 
 # --- Initial load of visit counter ---
 load_visit_counter()
 
 # --- Try auto-login ---
 if not st.session_state.logged_in:
-    # Check for stored email and refresh token in session state or Firebase
-    if not st.session_state.user_email and not st.session_state.refresh_token:
-        # Placeholder for persistent storage check (e.g., browser cookies or local file)
-        # For now, rely on Firebase if email is known; here we assume no prior email
-        pass
-    else:
-        try_auto_login()
+    if st.session_state.user_email and not st.session_state.refresh_token:
+        try:
+            # Temporary login to get token for loading refresh token
+            temp_user = auth.sign_in_with_email_and_password(st.session_state.user_email, "temp_password")
+            st.session_state.refresh_token = load_refresh_token(st.session_state.user_email, temp_user['idToken'])
+        except:
+            st.session_state.refresh_token = None
+    try_auto_login()
 
 # --- Login Page ---
 if not st.session_state.logged_in:
@@ -394,12 +392,10 @@ if not st.session_state.logged_in:
     email = st.text_input("📧 Email")
     password = st.text_input("🔒 Password", type="password")
 
-    # Email validation
     email_valid = "@" in email if email else False
     if email and not email_valid:
         st.error("Please enter a valid email address containing '@'.")
 
-    # Password validation
     password_valid = len(password) >= 6 if password else False
     if password and not password_valid:
         st.error("Password must be at least 6 characters long.")
@@ -410,7 +406,6 @@ if not st.session_state.logged_in:
     with col2:
         signup = st.button("📝 Sign Up")
 
-    # Forgot Password Section
     with st.expander("Forgot Password?"):
         reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
         reset_button = st.button("🔄 Send Reset Email")
@@ -439,11 +434,8 @@ if not st.session_state.logged_in:
                 st.session_state.user_name = email.split("@")[0]
                 st.session_state.user_token = user['idToken']
                 st.session_state.refresh_token = user['refreshToken']
-                # Save refresh token to Firebase
                 save_refresh_token(email, user['refreshToken'], user['idToken'])
-                # Load chat history after login
                 st.session_state.chat_history = load_chat_history(email, user['idToken'])
-                # Update visit counter
                 update_visit_counter()
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
@@ -451,13 +443,10 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
-                # Get authentication token after signup
                 login_response = auth.sign_in_with_email_and_password(email, password)
                 st.session_state.user_token = login_response['idToken']
                 st.session_state.refresh_token = login_response['refreshToken']
-                # Save refresh token to Firebase
                 save_refresh_token(email, login_response['refreshToken'], login_response['idToken'])
-                # Update visit counter
                 update_visit_counter()
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
@@ -472,23 +461,21 @@ if not st.session_state.logged_in:
             else:
                 st.error("Authentication failed. Please try again.")
 
-# --- Sidebar (only visible after login) ---
+# --- Sidebar ---
 if st.session_state.logged_in:
     with st.sidebar:
-        # Display logo beside SATyr text using a flex container for alignment
         st.markdown('<div class="logo-container">', unsafe_allow_html=True)
         col1, col2 = st.columns([1, 3])
         with col1:
-            st.image("logo.jpg", clamp=True, output_format="auto")  # Same logo.jpg
+            st.image("logo.jpg", clamp=True, output_format="auto")
         with col2:
             st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-        # Apply CSS for alignment and updated title size
         st.markdown(
             """
             <style>
             [data-testid="stImage"] img {
-                max-width: 50px; /* Downscaled for sidebar */
+                max-width: 50px;
                 height: auto;
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: -moz-crisp-edges;
@@ -496,21 +483,20 @@ if st.session_state.logged_in:
             }
             .logo-container {
                 display: flex;
-                align-items: flex-start; /* Allow margin-top to adjust text position */
+                align-items: flex-start;
                 margin-bottom: 10px;
             }
             div[data-testid="stSidebar"] h1.sidebar-title {
-                font-size: 45px !important; /* Current size */
+                font-size: 45px !important;
                 margin: 0;
                 line-height: 1;
-                vertical-align: middle; /* Align text vertically with logo */
-                margin-top: -15px !important; /* Maintain upward adjustment */
+                vertical-align: middle;
+                margin-top: -15px !important;
             }
             </style>
             """,
             unsafe_allow_html=True
         )
-        # Display visit counter below logo and title
         st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
         st.subheader("Conversations")
 
@@ -529,7 +515,7 @@ if st.session_state.logged_in:
             st.rerun()
 
         if st.button("🚪 Logout"):
-            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)  # Save history on logout
+            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
             st.session_state.logged_in = False
             st.session_state.chatbot.reset()
             st.session_state.chat_history = []
@@ -540,17 +526,15 @@ if st.session_state.logged_in:
             st.session_state.refresh_token = None
             st.rerun()
 
-    # Add translucent heart emoji at the bottom left of the screen
     st.markdown(f'<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:
-    st.title("SATyr - you're SAT saviour")  # Updated title
+    st.title("SATyr - you're SAT saviour")
 
     if st.session_state.user_name:
         st.session_state.chatbot.user_name = st.session_state.user_name
 
-        # Chat input form (only for new messages)
         if st.session_state.selected_conversation_index is None:
             with st.form("chat_form", clear_on_submit=True):
                 user_input = st.text_input("💬 Your message:", placeholder="Type your message here...")
@@ -562,19 +546,16 @@ if st.session_state.logged_in:
                         st.error(f"Failed to get response: {ai_response}")
                     else:
                         st.session_state.chat_history.append((user_input, ai_response))
-                        # Save updated chat history
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
                         st.rerun()
 
-        # Display selected conversation or nothing (for new chat)
         if st.session_state.selected_conversation_index is not None:
             idx = st.session_state.selected_conversation_index
             user_msg, ai_msg = st.session_state.chat_history[idx]
             st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
             st.markdown(f"**🤖 SATyr:** {ai_msg}")
 
-            # Reply button and form for follow-up
             with st.form(f"reply_form_{idx}", clear_on_submit=True):
                 follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
                 reply_submitted = st.form_submit_button("Reply")
@@ -584,14 +565,12 @@ if st.session_state.logged_in:
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
-                        # Update the conversation with follow-up question and response
                         current_conversation = st.session_state.chat_history[idx]
                         updated_conversation = (
                             f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
                             f"{current_conversation[1]}\nFollow-up response: {ai_response}"
                         )
                         st.session_state.chat_history[idx] = updated_conversation
-                        # Save updated chat history
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.rerun()
 

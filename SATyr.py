@@ -154,7 +154,7 @@ if st.session_state.logged_in:
             st.session_state.chat_history = []
             st.session_state.reply_to_index = None
             try:
-                st.experimental_rerun()
+                st.rerun()
             except Exception:
                 st.stop()
 
@@ -164,7 +164,7 @@ if st.session_state.logged_in:
             st.session_state.chat_history = []
             st.session_state.reply_to_index = None
             st.session_state.user_name = None
-            st.experimental_rerun()
+            st.rerun()
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:

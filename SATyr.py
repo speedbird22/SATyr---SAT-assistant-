@@ -30,13 +30,12 @@ if not st.session_state.splash_shown:
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                z-index: 10000; /* Higher to cover sidebar */
-                opacity: 1;
-                transition: opacity 0.5s ease-out; /* Smooth fade-out */
+                z-index: 999999; /* Extremely high to cover sidebar */
+                animation: fadeOut 0.5s ease-out 3s forwards; /* Fade out after 3s */
             }
-            #splash-screen.hidden {
-                opacity: 0;
-                pointer-events: none; /* Prevent interaction after fade */
+            @keyframes fadeOut {
+                0% { opacity: 1; }
+                100% { opacity: 0; display: none; }
             }
             .splash-logo {
                 max-width: 200px; /* Larger for splash screen */
@@ -55,26 +54,9 @@ if not st.session_state.splash_shown:
             st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_column_width=False)
         except FileNotFoundError:
             st.error("logo.jpg not found in project folder. Please ensure it’s in the same directory as this script.")
-        st.markdown(
-            """
-            </div>
-            <script>
-                setTimeout(function() {
-                    var splash = document.getElementById('splash-screen');
-                    if (splash) {
-                        splash.classList.add('hidden');
-                        // Fully remove after transition
-                        setTimeout(function() {
-                            splash.style.display = 'none';
-                        }, 500); // Match transition duration
-                    }
-                }, 3000);
-            </script>
-            """,
-            unsafe_allow_html=True
-        )
+        st.markdown("</div>", unsafe_allow_html=True)
     st.session_state.splash_shown = True
-    # No rerun to avoid refresh issues; JavaScript handles fade-out
+    # No JavaScript or rerun; CSS handles fade-out
 
 # Load environment variables from .env file
 load_dotenv()

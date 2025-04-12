@@ -499,4 +499,24 @@ if st.session_state.logged_in:
             user_msg, ai_msg = st.session_state.chat_history[idx]
             st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
             st.markdown(f"**🤖 SATyr:** {ai_msg}")
+
+            # Reply button and form for follow-up
+            with st.form(f"reply_form_{idx}", clear_on_submit=True):
+                follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
+                reply_submitted = st.form_submit_button("Reply")
+
+                if reply_submitted and follow_up_input:
+                    # Send follow-up question with the context of the current conversation
+                    ai_response = st.session_state.chatbot.send_request(follow_up_input, context=ai_msg)
+                    # Update the conversation with follow-up question and response
+                    current_conversation = st.session_state.chat_history[idx]
+                    updated_conversation = (
+                        f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
+                        f"{current_conversation[1]}\nFollow-up response: {ai_response}"
+                    )
+                    st.session_state.chat_history[idx] = updated_conversation
+                    # Save updated chat history
+                    save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                    st.rerun()
+
             st.divider()

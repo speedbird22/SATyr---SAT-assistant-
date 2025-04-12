@@ -9,6 +9,9 @@ import pyrebase
 import smtplib
 from email.mime.text import MIMEText
 
+# Set page config as the first Streamlit command
+st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -21,7 +24,7 @@ firebase_config = {
     "messagingSenderId": os.getenv("MESSAGING_SENDER_ID", ""),
     "appId": os.getenv("APP_ID", ""),
     "measurementId": os.getenv("MEASUREMENT_ID", ""),
-    "databaseURL": os.getenv("DATABASE_URL", "")  # Should now be set to https://satyr-fe4f3-default-rtdb.firebaseio.com
+    "databaseURL": os.getenv("DATABASE_URL", "")  # Should be https://satyr-fe4f3-default-rtdb.firebaseio.com
 }
 
 # Initialize Firebase with error handling
@@ -80,9 +83,6 @@ class SATyrAI:
     def reset(self):
         self.session_id = None
         self.context = None
-
-# --- Page config ---
-st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
 # --- Session State Init ---
 if "logged_in" not in st.session_state:

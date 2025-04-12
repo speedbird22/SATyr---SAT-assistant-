@@ -122,8 +122,8 @@ if st.session_state.show_double_click_message:
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
-    st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
-     st.markdown("Please double click the buttons to maintain the proper functionality of the buttons ")
+    st.markdown("Welcome to SATyr. Please log in or sign up to continue. Please ensure to double click the buttons :) we hope to fix this error soon")
+    
 
 
     email = st.text_input("📇 Email")

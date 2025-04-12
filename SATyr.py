@@ -138,10 +138,7 @@ if not st.session_state.logged_in:
         time.sleep(0.5)  # Add delay before handling the next steps to simulate the double-click
         st.session_state.logged_in = True
         st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        st.experimental_rerun()  # Trigger the rerun after the user clicks
-
-    st.stop()
-
+        st.stop()  # Stop the execution so the session state is set before moving on
 
 # --- Sidebar ---
 with st.sidebar:

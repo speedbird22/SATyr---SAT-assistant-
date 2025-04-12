@@ -6,8 +6,6 @@ import time
 from dotenv import load_dotenv
 import os
 import pyrebase
-import smtplib
-from email.mime.text import MIMEText
 
 # Set page config as the first Streamlit command
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
@@ -183,7 +181,6 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
-                send_welcome_email(email)
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
@@ -193,26 +190,6 @@ if not st.session_state.logged_in:
                 st.error("This email is already registered. Please log in or use a different email.")
             else:
                 st.error(f"Authentication failed: {str(e)}")
-
-# --- Function to send welcome email ---
-def send_welcome_email(to_email):
-    from_email = "your-email@gmail.com"  # Replace with your Gmail address
-    password = "your-app-specific-password"  # Replace with App Password if 2FA is enabled
-
-    msg = MIMEText(f"Welcome to SATyr, {st.session_state.user_name}! We're excited to have you on board.")
-    msg['Subject'] = 'Welcome to SATyr'
-    msg['From'] = from_email
-    msg['To'] = to_email
-
-    try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(from_email, password)
-        server.sendmail(from_email, to_email, msg.as_string())
-        server.quit()
-        st.success("Welcome email sent successfully!")
-    except Exception as e:
-        st.error(f"Failed to send welcome email: {str(e)}")
 
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:

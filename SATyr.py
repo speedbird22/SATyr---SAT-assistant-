@@ -133,12 +133,31 @@ if not st.session_state.logged_in:
     with col2:
         signup = st.button("📝 Sign Up")
 
-    if login or signup:
-        st.session_state.show_double_click_message = True  # Show the "double-click" message
-        time.sleep(0.5)  # Add delay before handling the next steps to simulate the double-click
-        st.session_state.logged_in = True
-        st.session_state.user_name = email.split("@")[0] if email else "Guest"
-        st.stop()  # Stop the execution so the session state is set before moving on
+    if login:
+        # Dummy email and password validation
+        if '@' not in email:
+            st.error("Please enter a valid email address.")
+        elif len(password) < 6:
+            st.error("Password must be at least 6 characters long.")
+        elif email != "test@example.com" or password != "password123":  # Dummy check
+            st.error("Incorrect email or password.")
+        else:
+            st.session_state.logged_in = True
+            st.session_state.user_name = email.split("@")[0] if email else "Guest"
+            st.stop()
+
+    if signup:
+        # Dummy sign-up process
+        if '@' not in email:
+            st.error("Please enter a valid email address.")
+        elif len(password) < 6:
+            st.error("Password must be at least 6 characters long.")
+        else:
+            st.session_state.logged_in = True
+            st.session_state.user_name = email.split("@")[0] if email else "Guest"
+            st.success("Sign-up successful!")
+            st.stop()
+
 
 # --- Sidebar ---
 with st.sidebar:

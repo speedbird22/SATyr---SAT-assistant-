@@ -491,7 +491,7 @@ if st.session_state.logged_in:
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:
-    st.title("SATyr - ur SAT saviour")  # Updated title
+    st.title("SATyr - you're SAT saviour")  # Updated title
 
     if st.session_state.user_name:
         st.session_state.chatbot.user_name = st.session_state.user_name

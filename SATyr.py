@@ -147,7 +147,7 @@ input, textarea {
     position: relative;
     width: 30px;
     height: 30px;
-    background-color: #ff4d4d; /* Red heart color */
+    background-color: rgba(255, 77, 77, 0.7); /* Translucent red heart */
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); /* Heart shape */
     margin-top: 10px;
     display: inline-block;

@@ -108,7 +108,10 @@ if "user_email" not in st.session_state:
 if "user_token" not in st.session_state:
     st.session_state.user_token = None
 
-# --- Custom dark background styling ---
+if "visit_count" not in st.session_state:
+    st.session_state.visit_count = 0
+
+# --- Custom styling including visit counter ---
 st.markdown("""
 <style>
 body {
@@ -124,6 +127,19 @@ body {
 input, textarea {
     background-color: #2d2d30 !important;
     color: white !important;
+}
+
+/* Visit counter badge in top-right corner */
+#visit-counter {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    z-index: 1000;
 }
 
 /* Floating message at the bottom */
@@ -148,9 +164,27 @@ if st.session_state.show_double_click_message:
     time.sleep(2)
     st.session_state.show_double_click_message = False
 
+# --- Update visit counter ---
+def update_visit_counter():
+    try:
+        current_count = db.child("visit_count").get().val() or 0
+        new_count = current_count + 1
+        db.child("visit_count").set(new_count)
+        st.session_state.visit_count = new_count
+    except Exception as e:
+        st.error(f"Failed to update visit counter: {str(e)}")
+
+# --- Load visit counter ---
+def load_visit_counter():
+    try:
+        count = db.child("visit_count").get().val() or 0
+        st.session_state.visit_count = count
+    except Exception as e:
+        st.error(f"Failed to load visit counter: {str(e)}")
+
 # --- Load chat history on login ---
 def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
-    if not st.session_state.logged_in:  # Avoid access before login
+    if not st.session_state.logged_in:
         return []
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
@@ -162,13 +196,16 @@ def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
 
 # --- Save chat history on logout or update ---
 def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
-    if not st.session_state.logged_in:  # Avoid access before login
+    if not st.session_state.logged_in:
         return
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
     except Exception as e:
         st.error(f"Failed to save chat history: {str(e)}")
+
+# --- Initial load of visit counter ---
+load_visit_counter()
 
 # --- Login Page ---
 if not st.session_state.logged_in:
@@ -206,6 +243,8 @@ if not st.session_state.logged_in:
                 st.session_state.user_token = user['idToken']
                 # Load chat history after login
                 st.session_state.chat_history = load_chat_history(email, st.session_state.user_token)
+                # Update visit counter
+                update_visit_counter()
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
                 user = auth.create_user_with_email_and_password(email, password)
@@ -215,6 +254,8 @@ if not st.session_state.logged_in:
                 # Get authentication token after signup
                 login_response = auth.sign_in_with_email_and_password(email, password)
                 st.session_state.user_token = login_response['idToken']
+                # Update visit counter
+                update_visit_counter()
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
@@ -224,6 +265,9 @@ if not st.session_state.logged_in:
                 st.error("This email is already registered. Please log in or use a different email.")
             else:
                 st.error(f"Authentication failed: {str(e)}")
+
+# --- Display visit counter ---
+st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
 
 # --- Sidebar (only visible after login) ---
 if st.session_state.logged_in:

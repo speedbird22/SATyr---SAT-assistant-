@@ -30,12 +30,12 @@ if not st.session_state.splash_shown:
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                z-index: 999999; /* Extremely high to cover sidebar */
+                z-index: 999999; /* High to cover sidebar */
                 animation: fadeOut 0.5s ease-out 3s forwards; /* Fade out after 3s */
             }
             @keyframes fadeOut {
-                0% { opacity: 1; }
-                100% { opacity: 0; display: none; }
+                from { opacity: 1; }
+                to { opacity: 0; visibility: hidden; } /* Use visibility to remove */
             }
             .splash-logo {
                 max-width: 200px; /* Larger for splash screen */
@@ -49,14 +49,30 @@ if not st.session_state.splash_shown:
             """,
             unsafe_allow_html=True
         )
-        # Use same logo.jpg as sidebar with error handling
+        # Use same logo.jpg as sidebar, updated parameter
         try:
-            st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_column_width=False)
+            st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_container_width=False)
         except FileNotFoundError:
             st.error("logo.jpg not found in project folder. Please ensure it’s in the same directory as this script.")
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            </div>
+            <script>
+                console.log("Splash screen loaded");
+                setTimeout(function() {
+                    var splash = document.getElementById('splash-screen');
+                    if (splash) {
+                        splash.style.opacity = '0';
+                        splash.style.visibility = 'hidden';
+                        console.log("Splash hidden after 3.5s");
+                    }
+                }, 3500); /* Match CSS animation end */
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
     st.session_state.splash_shown = True
-    # No JavaScript or rerun; CSS handles fade-out
+    # No rerun; CSS and JS handle fade-out
 
 # Load environment variables from .env file
 load_dotenv()

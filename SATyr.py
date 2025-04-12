@@ -92,9 +92,9 @@ class SATyrAI:
             payload["Context"] = context
         return payload
 
-    def send_request(self, text: str, reply_to: Optional[str] = None) -> str:
+    def send_request(self, text: str, context: Optional[str] = None) -> str:
         try:
-            payload = json.dumps(self._create_payload(text, context=reply_to))
+            payload = json.dumps(self._create_payload(text, context=context))
             headers = {
                 'Content-Type': 'application/json',
                 'x-api-key': self.api_key
@@ -130,8 +130,8 @@ if "chat_history" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
 
-if "reply_to_index" not in st.session_state:
-    st.session_state.reply_to_index = None
+if "selected_conversation_index" not in st.session_state:
+    st.session_state.selected_conversation_index = None
 
 if "show_double_click_message" not in st.session_state:
     st.session_state.show_double_click_message = False
@@ -448,14 +448,14 @@ if st.session_state.logged_in:
             for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
                 label = f"{user_msg[:20]}..."
                 if st.button(label, key=f"history_{idx}"):
-                    st.session_state.reply_to_index = idx
+                    st.session_state.selected_conversation_index = idx
+                    st.rerun()
         else:
             st.info("No conversations yet.")
 
         if st.button("🔄 New Session"):
             st.session_state.chatbot.reset()
-            st.session_state.chat_history = []
-            st.session_state.reply_to_index = None
+            st.session_state.selected_conversation_index = None
             st.rerun()
 
         if st.button("🚪 Logout"):
@@ -463,7 +463,7 @@ if st.session_state.logged_in:
             st.session_state.logged_in = False
             st.session_state.chatbot.reset()
             st.session_state.chat_history = []
-            st.session_state.reply_to_index = None
+            st.session_state.selected_conversation_index = None
             st.session_state.user_name = None
             st.session_state.user_email = None
             st.session_state.user_token = None
@@ -479,26 +479,24 @@ if st.session_state.logged_in:
     if st.session_state.user_name:
         st.session_state.chatbot.user_name = st.session_state.user_name
 
-        with st.form("chat_form", clear_on_submit=True):
-            default_prompt = "Type your message here..." if st.session_state.reply_to_index is None else f"Replying to: {st.session_state.chat_history[st.session_state.reply_to_index][1][:50]}..."
-            user_input = st.text_input("💬 Your message:", placeholder=default_prompt)
-            submitted = st.form_submit_button("Send")
+        # Chat input form (only for new messages)
+        if st.session_state.selected_conversation_index is None:
+            with st.form("chat_form", clear_on_submit=True):
+                user_input = st.text_input("💬 Your message:", placeholder="Type your message here...")
+                submitted = st.form_submit_button("Send")
 
-        if submitted and user_input:
-            reply_context = None
-            if st.session_state.reply_to_index is not None:
-                reply_context = st.session_state.chat_history[st.session_state.reply_to_index][1]
-            ai_response = st.session_state.chatbot.send_request(user_input, reply_to=reply_context)
-            st.session_state.chat_history.append((user_input, ai_response))
-            # Save updated chat history
-            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-            st.session_state.reply_to_index = None
+                if submitted and user_input:
+                    ai_response = st.session_state.chatbot.send_request(user_input)
+                    st.session_state.chat_history.append((user_input, ai_response))
+                    # Save updated chat history
+                    save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                    st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
+                    st.rerun()
 
-        # Display chat history
-        for idx, (user_msg, ai_msg) in enumerate(reversed(st.session_state.chat_history)):
-            display_idx = len(st.session_state.chat_history) - idx - 1
+        # Display selected conversation or nothing (for new chat)
+        if st.session_state.selected_conversation_index is not None:
+            idx = st.session_state.selected_conversation_index
+            user_msg, ai_msg = st.session_state.chat_history[idx]
             st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
             st.markdown(f"**🤖 SATyr:** {ai_msg}")
-            if st.button("↩️ Reply", key=f"reply_{display_idx}"):
-                st.session_state.reply_to_index = display_idx
             st.divider()

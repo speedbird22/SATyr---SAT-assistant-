@@ -30,7 +30,6 @@ try:
     firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
     db = firebase.database()  # Initialize the database
-    # Removed st.success("Firebase initialized successfully!") to avoid client-facing message
 except Exception as e:
     st.error(f"Failed to initialize Firebase: {str(e)}")
     st.stop()
@@ -111,7 +110,7 @@ if "user_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Custom styling including visit counter and heart icon ---
+# --- Custom styling including visit counter, heart icon, and buttons ---
 st.markdown("""
 <style>
 body {
@@ -171,6 +170,68 @@ input, textarea {
     border-radius: 5px;
     display: none;
     z-index: 1000;
+}
+
+/* General button styling */
+.stButton > button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 100%; /* Ensure buttons take full container width */
+}
+
+/* Primary buttons (Login, Sign Up, Send) */
+div[data-testid="stHorizontalBlock"] .stButton > button,
+form .stButton > button {
+    background-color: #4CAF50; /* Green to match visit counter */
+    color: white;
+}
+div[data-testid="stHorizontalBlock"] .stButton > button:hover,
+form .stButton > button:hover {
+    background-color: #45a049; /* Slightly darker green */
+    transform: scale(1.05);
+}
+div[data-testid="stHorizontalBlock"] .stButton > button:active,
+form .stButton > button:active {
+    background-color: #3d8b40; /* Darker on click */
+    transform: scale(0.98);
+}
+
+/* Secondary buttons (New Session, Logout, Reply) */
+.stSidebar .stButton > button:not([id*="history"]),
+div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {
+    background-color: #555555; /* Neutral gray */
+    color: white;
+}
+.stSidebar .stButton > button:not([id*="history"]):hover,
+div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {
+    background-color: #666666; /* Lighter gray */
+    transform: scale(1.05);
+}
+.stSidebar .stButton > button:not([id*="history"]):active,
+div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {
+    background-color: #4a4a4a; /* Darker gray */
+    transform: scale(0.98);
+}
+
+/* Conversation history buttons in sidebar */
+.stSidebar .stButton[id*="history"] > button {
+    background-color: #2d2d30; /* Matches input fields */
+    color: #ececf1;
+    font-size: 13px;
+    padding: 6px 12px;
+}
+.stSidebar .stButton[id*="history"] > button:hover {
+    background-color: #3a3a3d; /* Slightly lighter */
+    transform: scale(1.02);
+}
+.stSidebar .stButton[id*="history"] > button:active {
+    background-color: #262629; /* Slightly darker */
+    transform: scale(0.98);
 }
 </style>
 """, unsafe_allow_html=True)

@@ -14,7 +14,7 @@ st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 
-# Display splash screen (baby blue, no logo)
+# Display splash screen (baby blue, no logo, reduced duration)
 if not st.session_state.splash_shown:
     with st.container():
         st.markdown(
@@ -28,7 +28,7 @@ if not st.session_state.splash_shown:
                 height: 100vh;
                 background-color: #89CFF0; /* Baby blue */
                 z-index: 999999; /* High to cover sidebar */
-                animation: fadeOut 0.5s ease-out 1.5s forwards; /* Fade out after 1.5s */
+                animation: fadeOut 0.25s ease-out 0.75s forwards; /* Fade out after 0.75s */
             }
             @keyframes fadeOut {
                 from { opacity: 1; }
@@ -40,7 +40,7 @@ if not st.session_state.splash_shown:
             unsafe_allow_html=True
         )
     # Use time.sleep to ensure the splash screen is visible for the full duration
-    time.sleep(2)  # Total duration: 1.5s display + 0.5s fade
+    time.sleep(1)  # Total duration: 0.75s display + 0.25s fade
     st.session_state.splash_shown = True
     st.rerun()  # Rerun to remove splash screen
 
@@ -333,7 +333,9 @@ if not st.session_state.logged_in:
         st.error("Please enter a valid email address containing '@'.")
 
     # Password validation
-    password_valid = len(password) >= 6 if password else False
+    password_valid = len(password) >= 6 if password……
+
+System: else False
     if password and not password_valid:
         st.error("Password must be at least 6 characters long.")
 

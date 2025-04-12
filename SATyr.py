@@ -30,7 +30,7 @@ try:
     firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
     db = firebase.database()  # Initialize the database
-    st.success("Firebase initialized successfully!")
+    # Removed st.success("Firebase initialized successfully!") to avoid client-facing message
 except Exception as e:
     st.error(f"Failed to initialize Firebase: {str(e)}")
     st.stop()
@@ -142,7 +142,7 @@ input, textarea {
     z-index: 1001;
 }
 
-/* Heart icon at the bottom left of the screen */
+/* Heart icon at the bottom left of the screen, visible only when sidebar is open */
 #heart-icon {
     position: fixed;
     bottom: 10px;
@@ -151,6 +151,12 @@ input, textarea {
     color: #ff4d4d; /* Red color for heart */
     opacity: 0.5; /* 50% visibility */
     z-index: 1000;
+    display: none; /* Hidden by default */
+}
+
+/* Show heart icon only when sidebar is visible */
+.sidebar .sidebar-content:not([style*="display: none"]) ~ #heart-icon {
+    display: block;
 }
 
 /* Floating message at the bottom */

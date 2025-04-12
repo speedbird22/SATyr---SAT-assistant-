@@ -129,16 +129,16 @@ input, textarea {
     color: white !important;
 }
 
-/* Visit counter badge in top-right corner */
+/* Visit counter below SATyr logo in sidebar */
 #visit-counter {
-    position: fixed;
-    top: 10px;
-    right: 10px;
+    position: relative;
     background-color: #4CAF50;
     color: white;
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 14px;
+    margin-top: 5px;
+    display: inline-block; /* Ensure it fits within sidebar */
     z-index: 1001; /* Ensure it stays above other elements */
 }
 
@@ -207,9 +207,6 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 # --- Initial load of visit counter ---
 load_visit_counter()
 
-# --- Display visit counter (moved to be visible always) ---
-st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
-
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
@@ -273,6 +270,8 @@ if not st.session_state.logged_in:
 if st.session_state.logged_in:
     with st.sidebar:
         st.title("🧠 SATyr")
+        # Display visit counter below SATyr logo
+        st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
         st.subheader("Conversations")
 
         if st.session_state.chat_history:

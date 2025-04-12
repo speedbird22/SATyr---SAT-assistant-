@@ -44,8 +44,11 @@ if not st.session_state.splash_shown:
             """,
             unsafe_allow_html=True
         )
-        # Use same logo.jpg as sidebar
-        st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_column_width=False)
+        # Verify logo.jpg exists and display it
+        try:
+            st.image("logo.jpg", width=200, output_format="auto", clamp=True, use_column_width=False)
+        except FileNotFoundError:
+            st.error("logo.jpg not found in project folder. Please ensure it’s in the same directory as this script.")
         st.markdown(
             """
             </div>
@@ -60,8 +63,10 @@ if not st.session_state.splash_shown:
             """,
             unsafe_allow_html=True
         )
+    # Mark splash as shown without rerun to avoid refresh issues
     st.session_state.splash_shown = True
-    st.experimental_rerun()
+    # Debug: Confirm splash code ran
+    # st.write("(Debug: Splash screen code executed)")  # Uncomment to verify
 
 # Load environment variables from .env file
 load_dotenv()

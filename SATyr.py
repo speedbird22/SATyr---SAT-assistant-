@@ -342,7 +342,7 @@ if not st.session_state.logged_in:
 if st.session_state.logged_in:
     with st.sidebar:
         # Display logo
-        st.image("logo.jpg", use_column_width=True, clamp=True, output_format="auto")
+        st.image("logo.jpg", use_container_width=True, clamp=True, output_format="auto")
         st.title("🧠 SATyr")
         # Display visit counter below SATyr logo
         st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)

@@ -234,7 +234,7 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
         db.child("users").child(safe_email).update({"chat_history": chat_history}, token)
         st.session_state.chat_history = chat_history  # Sync session state
     except Exception as e:
-        st.error(f"Failed to save chat history: {str(e)}.")
+        st.error(f"Failed to save chat history: {str(e)}")
 
 # --- Initial load of visit counter ---
 load_visit_counter()
@@ -495,6 +495,7 @@ else:
 
         if st.button("🚪 Logout"):
             if st.session_state.user_email and st.session_state.user_token:
+                st.warning("Saving chat history to the cloud. Please wait...")
                 try:
                     save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                     # Verify save by reloading
@@ -506,6 +507,7 @@ else:
                     st.error(f"Failed to save chat history during logout: {str(e)}. Reloading from Firebase.")
                     _, reloaded_chat_history = load_user_data(st.session_state.user_email, st.session_state.user_token)
                     st.session_state.chat_history = reloaded_chat_history
+                time.sleep(2)  # Give 2 seconds to read any errors
             st.session_state.clear()
             st.session_state.logged_in = False
             st.success("Logged out successfully!")

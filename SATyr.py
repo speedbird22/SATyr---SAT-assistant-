@@ -42,7 +42,7 @@ if not st.session_state.splash_shown:
         )
     time.sleep(1)
     st.session_state.splash_shown = True
-    st.rerun()  # Changed from st.experimental_rerun()
+    st.rerun()
 
 # Load environment variables
 load_dotenv()
@@ -232,8 +232,9 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).update({"chat_history": chat_history}, token)
+        st.session_state.chat_history = chat_history  # Ensure session state is synced
     except Exception as e:
-        st.warning(f"Failed to save chat history: {str(e)}.")
+        st.error(f"Failed to save chat history: {str(e)}.")
 
 # --- Initial load of visit counter ---
 load_visit_counter()
@@ -495,9 +496,8 @@ else:
         if st.button("🚪 Logout"):
             if st.session_state.user_email and st.session_state.user_token:
                 save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-            # Reset session state
-            st.session_state.clear()  # Clear all session state
-            st.session_state.logged_in = False  # Reinitialize logged_in
+            st.session_state.clear()
+            st.session_state.logged_in = False
             st.success("Logged out successfully!")
             time.sleep(0.5)
             st.rerun()

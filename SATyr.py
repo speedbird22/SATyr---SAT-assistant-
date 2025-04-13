@@ -232,7 +232,7 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).update({"chat_history": chat_history}, token)
-        st.session_state.chat_history = chat_history  # Ensure session state is synced
+        st.session_state.chat_history = chat_history  # Sync session state
     except Exception as e:
         st.error(f"Failed to save chat history: {str(e)}.")
 
@@ -495,7 +495,17 @@ else:
 
         if st.button("🚪 Logout"):
             if st.session_state.user_email and st.session_state.user_token:
-                save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                try:
+                    save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                    # Verify save by reloading
+                    _, reloaded_chat_history = load_user_data(st.session_state.user_email, st.session_state.user_token)
+                    if reloaded_chat_history != st.session_state.chat_history:
+                        st.error("Chat history save verification failed. Reloading from Firebase.")
+                        st.session_state.chat_history = reloaded_chat_history
+                except Exception as e:
+                    st.error(f"Failed to save chat history during logout: {str(e)}. Reloading from Firebase.")
+                    _, reloaded_chat_history = load_user_data(st.session_state.user_email, st.session_state.user_token)
+                    st.session_state.chat_history = reloaded_chat_history
             st.session_state.clear()
             st.session_state.logged_in = False
             st.success("Logged out successfully!")

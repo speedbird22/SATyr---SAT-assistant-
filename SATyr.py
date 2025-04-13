@@ -199,12 +199,12 @@ def load_user_email() -> Optional[str]:
         return None
 
 def try_auto_login():
+    if "logout_triggered" in st.session_state and st.session_state.logout_triggered:
+        return False
     if not st.session_state.user_email:
         st.session_state.user_email = load_user_email()
-
     if st.session_state.user_email:
         st.session_state.refresh_token = load_refresh_token(st.session_state.user_email)
-
     if st.session_state.user_email and st.session_state.refresh_token:
         try:
             user = auth.refresh(st.session_state.refresh_token)
@@ -441,6 +441,7 @@ if not st.session_state.logged_in:
                 save_refresh_token(email, user['refreshToken'], user['idToken'])
                 st.session_state.chat_history = load_chat_history(email, user['idToken'])
                 update_visit_counter()
+                st.session_state.logout_triggered = False  # Reset flag
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
                 user = auth.create_user_with_email_and_password(email, password)
@@ -452,6 +453,7 @@ if not st.session_state.logged_in:
                 st.session_state.refresh_token = login_response['refreshToken']
                 save_refresh_token(email, login_response['refreshToken'], login_response['idToken'])
                 update_visit_counter()
+                st.session_state.logout_triggered = False  # Reset flag
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
@@ -518,16 +520,15 @@ if st.session_state.logged_in:
             st.session_state.selected_conversation_index = None
             st.rerun()
 
-        if st.button("🚪 Logout"):
-            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+        if st.button("🚪 Logout", key="logout_button"):
+            try:
+                save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+            except Exception as e:
+                print(f"Logout: Failed to save chat history: {str(e)}")
             st.session_state.logged_in = False
-            st.session_state.chatbot.reset()
-            st.session_state.chat_history = []
-            st.session_state.selected_conversation_index = None
-            st.session_state.user_name = None
-            st.session_state.user_email = None
             st.session_state.user_token = None
             st.session_state.refresh_token = None
+            st.session_state.logout_triggered = True
             st.rerun()
 
 # --- Main Chat UI ---

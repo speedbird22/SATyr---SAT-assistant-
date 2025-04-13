@@ -42,7 +42,7 @@ if not st.session_state.splash_shown:
         )
     time.sleep(1)
     st.session_state.splash_shown = True
-    st.rerun()
+    st.experimental_rerun()
 
 # Load environment variables
 load_dotenv()
@@ -170,40 +170,29 @@ def save_refresh_token(email: str, refresh_token: str, token: str):
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).set({
             "email": email,
-            "refresh_token": refresh_token
+            "refresh_token": refresh_token,
+            "chat_history": st.session_state.chat_history
         }, token)
     except Exception as e:
         st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work.")
 
-def load_refresh_token(email: str) -> Optional[str]:
+def load_user_data(email: str, token: str) -> tuple:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        data = db.child("users").child(safe_email).get().val()
-        if data and "refresh_token" in data:
-            return data["refresh_token"]
-        return None
+        data = db.child("users").child(safe_email).get(token=token).val()
+        if data:
+            return data.get("refresh_token"), data.get("chat_history", [])
+        return None, []
     except Exception as e:
-        st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work.")
-        return None
-
-def load_user_email() -> Optional[str]:
-    try:
-        users = db.child("users").get().val()
-        if users:
-            for safe_email, data in users.items():
-                if "email" in data:
-                    return data["email"]
-        return None
-    except Exception as e:
-        st.warning(f"Failed to load user email: {str(e)}.")
-        return None
+        st.warning(f"Failed to load user data: {str(e)}.")
+        return None, []
 
 def try_auto_login():
     if not st.session_state.user_email:
-        st.session_state.user_email = load_user_email()
+        return False
 
-    if st.session_state.user_email:
-        st.session_state.refresh_token = load_refresh_token(st.session_state.user_email)
+    refresh_token, chat_history = load_user_data(st.session_state.user_email, None)
+    st.session_state.refresh_token = refresh_token
 
     if st.session_state.user_email and st.session_state.refresh_token:
         try:
@@ -211,7 +200,7 @@ def try_auto_login():
             st.session_state.user_token = user['idToken']
             st.session_state.logged_in = True
             st.session_state.user_name = st.session_state.user_email.split("@")[0]
-            st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
+            st.session_state.chat_history = chat_history
             update_visit_counter()
             return True
         except Exception as e:
@@ -220,6 +209,7 @@ def try_auto_login():
             st.session_state.refresh_token = None
             st.session_state.user_email = None
             st.session_state.user_token = None
+            st.session_state.chat_history = []
     return False
 
 def update_visit_counter():
@@ -238,19 +228,10 @@ def load_visit_counter():
     except Exception as e:
         st.warning(f"Failed to load visit counter: {str(e)}.")
 
-def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
-        return chat_data if chat_data else []
-    except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}.")
-        return []
-
 def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
+        db.child("users").child(safe_email).update({"chat_history": chat_history}, token)
     except Exception as e:
         st.warning(f"Failed to save chat history: {str(e)}.")
 
@@ -432,7 +413,8 @@ if not st.session_state.logged_in:
                 st.session_state.user_token = user['idToken']
                 st.session_state.refresh_token = user['refreshToken']
                 save_refresh_token(email, user['refreshToken'], user['idToken'])
-                st.session_state.chat_history = load_chat_history(email, user['idToken'])
+                _, chat_history = load_user_data(email, user['idToken'])
+                st.session_state.chat_history = chat_history
                 update_visit_counter()
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
@@ -448,7 +430,7 @@ if not st.session_state.logged_in:
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
-            st.experimental_rerun()  # Use experimental_rerun for more reliable reset
+            st.experimental_rerun()
         except Exception as e:
             error_msg = str(e)
             if "EMAIL_EXISTS" in error_msg:
@@ -511,18 +493,15 @@ else:
             st.experimental_rerun()
 
         if st.button("🚪 Logout"):
-            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-            st.session_state.logged_in = False
-            st.session_state.chatbot.reset()
-            st.session_state.chat_history = []
-            st.session_state.selected_conversation_index = None
-            st.session_state.user_name = None
-            st.session_state.user_email = None
-            st.session_state.user_token = None
-            st.session_state.refresh_token = None
+            if st.session_state.user_email and st.session_state.user_token:
+                save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+            # Reset all session state
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.session_state.logged_in = False  # Reinitialize logged_in to False
             st.success("Logged out successfully!")
-            time.sleep(0.5)  # Small delay to ensure message is visible
-            st.experimental_rerun()  # Use experimental_rerun for more reliable reset
+            time.sleep(0.5)
+            st.experimental_rerun()
 
     # Main Chat UI
     st.title("SATyr - you're SAT saviour")

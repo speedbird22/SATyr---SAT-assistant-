@@ -1,10 +1,10 @@
 # Bujji
 May this code achieve what it seeks, to asisst those who are preparing for SAT's, may this code be a guiding light for those who seem to be lost and have no path to go on, may this code abide by our motto - for God and country.
 
-<body>
+
 
   ###### For madam ji <3
-</body>
+
 
 
 

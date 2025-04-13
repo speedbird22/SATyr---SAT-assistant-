@@ -164,7 +164,7 @@ if "refresh_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Helper Functions for Auto-Login ---
+# --- Helper Functions ---
 def save_refresh_token(email: str, refresh_token: str, token: str):
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
@@ -221,6 +221,45 @@ def try_auto_login():
             st.session_state.user_email = None
             st.session_state.user_token = None
     return False
+
+def update_visit_counter():
+    try:
+        current_count = db.child("visit_count").get().val() or 0
+        new_count = current_count + 1
+        db.child("visit_count").set(new_count)
+        st.session_state.visit_count = new_count
+    except Exception as e:
+        st.warning(f"Failed to update visit counter: {str(e)}.")
+
+def load_visit_counter():
+    try:
+        count = db.child("visit_count").get().val() or 0
+        st.session_state.visit_count = count
+    except Exception as e:
+        st.warning(f"Failed to load visit counter: {str(e)}.")
+
+def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
+        return chat_data if chat_data else []
+    except Exception as e:
+        st.warning(f"Failed to load chat history: {str(e)}.")
+        return []
+
+def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
+    except Exception as e:
+        st.warning(f"Failed to save chat history: {str(e)}.")
+
+# --- Initial load of visit counter ---
+load_visit_counter()
+
+# --- Try auto-login ---
+if not st.session_state.logged_in:
+    try_auto_login()
 
 # --- Custom styling ---
 st.markdown(
@@ -341,53 +380,6 @@ if st.session_state.show_double_click_message:
     time.sleep(2)
     st.session_state.show_double_click_message = False
 
-# --- Update visit counter ---
-def update_visit_counter():
-    try:
-        current_count = db.child("visit_count").get().val() or 0
-        new_count = current_count + 1
-        db.child("visit_count").set(new_count)
-        st.session_state.visit_count = new_count
-    except Exception as e:
-        st.warning(f"Failed to update visit counter: {str(e)}.")
-
-# --- Load visit counter ---
-def load_visit_counter():
-    try:
-        count = db.child("visit_count").get().val() or 0
-        st.session_state.visit_count = count
-    except Exception as e:
-        st.warning(f"Failed to load visit counter: {str(e)}.")
-
-# --- Load chat history ---
-def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
-    if not st.session_state.logged_in:
-        return []
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
-        return chat_data if chat_data else []
-    except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}.")
-        return []
-
-# --- Save chat history ---
-def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
-    if not st.session_state.logged_in:
-        return
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
-    except Exception as e:
-        st.warning(f"Failed to save chat history: {str(e)}.")
-
-# --- Initial load of visit counter ---
-load_visit_counter()
-
-# --- Try auto-login ---
-if not st.session_state.logged_in:
-    try_auto_login()
-
 # --- Main App Logic ---
 if not st.session_state.logged_in:
     # Login Page
@@ -456,7 +448,7 @@ if not st.session_state.logged_in:
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
-            st.rerun()
+            st.experimental_rerun()  # Use experimental_rerun for more reliable reset
         except Exception as e:
             error_msg = str(e)
             if "EMAIL_EXISTS" in error_msg:
@@ -509,14 +501,14 @@ else:
                 label = f"{user_msg[:20]}..."
                 if st.button(label, key=f"history_{idx}"):
                     st.session_state.selected_conversation_index = idx
-                    st.rerun()
+                    st.experimental_rerun()
         else:
             st.info("No conversations yet.")
 
         if st.button("🔄 New Session"):
             st.session_state.chatbot.reset()
             st.session_state.selected_conversation_index = None
-            st.rerun()
+            st.experimental_rerun()
 
         if st.button("🚪 Logout"):
             save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
@@ -530,7 +522,7 @@ else:
             st.session_state.refresh_token = None
             st.success("Logged out successfully!")
             time.sleep(0.5)  # Small delay to ensure message is visible
-            st.rerun()
+            st.experimental_rerun()  # Use experimental_rerun for more reliable reset
 
     # Main Chat UI
     st.title("SATyr - you're SAT saviour")
@@ -551,7 +543,7 @@ else:
                         st.session_state.chat_history.append((user_input, ai_response))
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
-                        st.rerun()
+                        st.experimental_rerun()
 
         if st.session_state.selected_conversation_index is not None:
             idx = st.session_state.selected_conversation_index
@@ -575,6 +567,6 @@ else:
                         )
                         st.session_state.chat_history[idx] = updated_conversation
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-                        st.rerun()
+                        st.experimental_rerun()
 
             st.divider()

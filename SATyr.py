@@ -83,7 +83,7 @@ class SATyrAI:
     def _connect(self):
         if self.conn:
             self.conn.close()
-        self.conn = http.client.HTTPSConnection(self.base_url, timeout=10)
+        self.conn = http.client.HTTPSConnection(self.base_url, timeout=30)
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
@@ -164,9 +164,6 @@ if "refresh_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-if "debug_message" not in st.session_state:
-    st.session_state.debug_message = ""
-
 # --- Helper Functions for Auto-Login ---
 def save_refresh_token(email: str, refresh_token: str, token: str):
     try:
@@ -175,9 +172,7 @@ def save_refresh_token(email: str, refresh_token: str, token: str):
             "email": email,
             "refresh_token": refresh_token
         }, token)
-        st.session_state.debug_message = f"Saved refresh token for {safe_email}"
     except Exception as e:
-        st.session_state.debug_message = f"Failed to save refresh token: {str(e)}"
         st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work.")
 
 def load_refresh_token(email: str) -> Optional[str]:
@@ -185,12 +180,9 @@ def load_refresh_token(email: str) -> Optional[str]:
         safe_email = email.replace(".", "_").replace("@", "_")
         data = db.child("users").child(safe_email).get().val()
         if data and "refresh_token" in data:
-            st.session_state.debug_message = f"Loaded refresh token for {safe_email}"
             return data["refresh_token"]
-        st.session_state.debug_message = f"No refresh token found for {safe_email}"
         return None
     except Exception as e:
-        st.session_state.debug_message = f"Failed to load refresh token: {str(e)}"
         st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work.")
         return None
 
@@ -200,12 +192,9 @@ def load_user_email() -> Optional[str]:
         if users:
             for safe_email, data in users.items():
                 if "email" in data:
-                    st.session_state.debug_message = f"Found email: {data['email']}"
                     return data["email"]
-        st.session_state.debug_message = "No user email found in Firebase"
         return None
     except Exception as e:
-        st.session_state.debug_message = f"Failed to load user email: {str(e)}"
         st.warning(f"Failed to load user email: {str(e)}.")
         return None
 
@@ -224,17 +213,13 @@ def try_auto_login():
             st.session_state.user_name = st.session_state.user_email.split("@")[0]
             st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
             update_visit_counter()
-            st.session_state.debug_message = f"Auto-login successful for {st.session_state.user_email}"
             return True
         except Exception as e:
-            st.session_state.debug_message = f"Auto-login failed: {str(e)}"
             st.warning(f"Auto-login failed: {str(e)}. Please log in manually.")
             st.session_state.logged_in = False
             st.session_state.refresh_token = None
             st.session_state.user_email = None
             st.session_state.user_token = None
-    else:
-        st.session_state.debug_message = f"Auto-login skipped: email={st.session_state.user_email}, token={st.session_state.refresh_token}"
     return False
 
 # --- Custom styling ---
@@ -265,19 +250,6 @@ st.markdown(
         margin-top: 5px;
         display: inline-block;
         z-index: 1001;
-    }}
-    #heart-icon {{
-        position: fixed;
-        bottom: 10px;
-        left: 10px;
-        font-size: 30px;
-        color: {COLORS['heart_icon']};
-        opacity: 0.5;
-        z-index: 1000;
-        display: none;
-    }}
-    [data-testid="stSidebar"]:not([style*="width: 0px"]) ~ #heart-icon {{
-        display: block;
     }}
     #floating-message {{
         position: fixed;
@@ -411,10 +383,6 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 
 # --- Initial load of visit counter ---
 load_visit_counter()
-
-# --- Debug message display ---
-if "debug_message" in st.session_state and st.session_state.debug_message:
-    st.sidebar.markdown(f"**Debug**: {st.session_state.debug_message}")
 
 # --- Try auto-login ---
 if not st.session_state.logged_in:
@@ -561,8 +529,6 @@ if st.session_state.logged_in:
             st.session_state.user_token = None
             st.session_state.refresh_token = None
             st.rerun()
-
-    st.markdown(f'<div id="heart-icon">❤️</div>', unsafe_allow_html=True)
 
 # --- Main Chat UI ---
 if st.session_state.logged_in:

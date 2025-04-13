@@ -42,7 +42,7 @@ if not st.session_state.splash_shown:
         )
     time.sleep(1)
     st.session_state.splash_shown = True
-    st.experimental_rerun()
+    st.rerun()  # Changed from st.experimental_rerun()
 
 # Load environment variables
 load_dotenv()
@@ -430,7 +430,7 @@ if not st.session_state.logged_in:
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
-            st.experimental_rerun()
+            st.rerun()
         except Exception as e:
             error_msg = str(e)
             if "EMAIL_EXISTS" in error_msg:
@@ -483,25 +483,24 @@ else:
                 label = f"{user_msg[:20]}..."
                 if st.button(label, key=f"history_{idx}"):
                     st.session_state.selected_conversation_index = idx
-                    st.experimental_rerun()
+                    st.rerun()
         else:
             st.info("No conversations yet.")
 
         if st.button("🔄 New Session"):
             st.session_state.chatbot.reset()
             st.session_state.selected_conversation_index = None
-            st.experimental_rerun()
+            st.rerun()
 
         if st.button("🚪 Logout"):
             if st.session_state.user_email and st.session_state.user_token:
                 save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-            # Reset all session state
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.session_state.logged_in = False  # Reinitialize logged_in to False
+            # Reset session state
+            st.session_state.clear()  # Clear all session state
+            st.session_state.logged_in = False  # Reinitialize logged_in
             st.success("Logged out successfully!")
             time.sleep(0.5)
-            st.experimental_rerun()
+            st.rerun()
 
     # Main Chat UI
     st.title("SATyr - you're SAT saviour")
@@ -522,7 +521,7 @@ else:
                         st.session_state.chat_history.append((user_input, ai_response))
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
-                        st.experimental_rerun()
+                        st.rerun()
 
         if st.session_state.selected_conversation_index is not None:
             idx = st.session_state.selected_conversation_index
@@ -546,6 +545,6 @@ else:
                         )
                         st.session_state.chat_history[idx] = updated_conversation
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-                        st.experimental_rerun()
+                        st.rerun()
 
             st.divider()

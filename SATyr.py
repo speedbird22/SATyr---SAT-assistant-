@@ -388,8 +388,9 @@ load_visit_counter()
 if not st.session_state.logged_in:
     try_auto_login()
 
-# --- Login Page ---
+# --- Main App Logic ---
 if not st.session_state.logged_in:
+    # Login Page
     st.title("🔐 SATyr Login")
     st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
 
@@ -464,9 +465,8 @@ if not st.session_state.logged_in:
                 st.error("Incorrect email or password.")
             else:
                 st.error(f"Authentication failed: {error_msg}")
-
-# --- Sidebar ---
-if st.session_state.logged_in:
+else:
+    # Sidebar
     with st.sidebar:
         st.markdown('<div class="logo-container">', unsafe_allow_html=True)
         col1, col2 = st.columns([1, 3])
@@ -532,8 +532,7 @@ if st.session_state.logged_in:
             time.sleep(0.5)  # Small delay to ensure message is visible
             st.rerun()
 
-# --- Main Chat UI ---
-if st.session_state.logged_in:
+    # Main Chat UI
     st.title("SATyr - you're SAT saviour")
 
     if st.session_state.user_name:

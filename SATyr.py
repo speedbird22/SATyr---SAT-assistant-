@@ -528,6 +528,8 @@ if st.session_state.logged_in:
             st.session_state.user_email = None
             st.session_state.user_token = None
             st.session_state.refresh_token = None
+            st.success("Logged out successfully!")
+            time.sleep(0.5)  # Small delay to ensure message is visible
             st.rerun()
 
 # --- Main Chat UI ---

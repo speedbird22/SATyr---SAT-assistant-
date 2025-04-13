@@ -164,35 +164,46 @@ if "refresh_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Helper Functions ---
+# --- Helper Functions for Auto-Login ---
 def save_refresh_token(email: str, refresh_token: str, token: str):
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).set({
             "email": email,
-            "refresh_token": refresh_token,
-            "chat_history": st.session_state.chat_history
+            "refresh_token": refresh_token
         }, token)
     except Exception as e:
         st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work.")
 
-def load_user_data(email: str, token: str) -> tuple:
+def load_refresh_token(email: str) -> Optional[str]:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        data = db.child("users").child(safe_email).get(token=token).val()
-        if data:
-            return data.get("refresh_token"), data.get("chat_history", [])
-        return None, []
+        data = db.child("users").child(safe_email).get().val()
+        if data and "refresh_token" in data:
+            return data["refresh_token"]
+        return None
     except Exception as e:
-        st.warning(f"Failed to load user data: {str(e)}.")
-        return None, []
+        st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work.")
+        return None
+
+def load_user_email() -> Optional[str]:
+    try:
+        users = db.child("users").get().val()
+        if users:
+            for safe_email, data in users.items():
+                if "email" in data:
+                    return data["email"]
+        return None
+    except Exception as e:
+        st.warning(f"Failed to load user email: {str(e)}.")
+        return None
 
 def try_auto_login():
     if not st.session_state.user_email:
-        return False
+        st.session_state.user_email = load_user_email()
 
-    refresh_token, chat_history = load_user_data(st.session_state.user_email, None)
-    st.session_state.refresh_token = refresh_token
+    if st.session_state.user_email:
+        st.session_state.refresh_token = load_refresh_token(st.session_state.user_email)
 
     if st.session_state.user_email and st.session_state.refresh_token:
         try:
@@ -200,7 +211,7 @@ def try_auto_login():
             st.session_state.user_token = user['idToken']
             st.session_state.logged_in = True
             st.session_state.user_name = st.session_state.user_email.split("@")[0]
-            st.session_state.chat_history = chat_history
+            st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
             update_visit_counter()
             return True
         except Exception as e:
@@ -209,51 +220,7 @@ def try_auto_login():
             st.session_state.refresh_token = None
             st.session_state.user_email = None
             st.session_state.user_token = None
-            st.session_state.chat_history = []
     return False
-
-def update_visit_counter():
-    try:
-        current_count = db.child("visit_count").get().val() or 0
-        new_count = current_count + 1
-        db.child("visit_count").set(new_count)
-        st.session_state.visit_count = new_count
-    except Exception as e:
-        st.warning(f"Failed to update visit counter: {str(e)}.")
-
-def load_visit_counter():
-    try:
-        count = db.child("visit_count").get().val() or 0
-        st.session_state.visit_count = count
-    except Exception as e:
-        st.warning(f"Failed to load visit counter: {str(e)}.")
-
-def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
-    if not st.session_state.logged_in:
-        return []
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
-        return chat_data if chat_data else []
-    except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}. Starting with empty history.")
-        return []
-
-def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
-    if not st.session_state.logged_in:
-        return
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
-    except Exception as e:
-        st.error(f"Failed to save chat history: {str(e)}")
-
-# --- Initial load of visit counter ---
-load_visit_counter()
-
-# --- Try auto-login ---
-if not st.session_state.logged_in:
-    try_auto_login()
 
 # --- Custom styling ---
 st.markdown(
@@ -374,9 +341,55 @@ if st.session_state.show_double_click_message:
     time.sleep(2)
     st.session_state.show_double_click_message = False
 
-# --- Main App Logic ---
+# --- Update visit counter ---
+def update_visit_counter():
+    try:
+        current_count = db.child("visit_count").get().val() or 0
+        new_count = current_count + 1
+        db.child("visit_count").set(new_count)
+        st.session_state.visit_count = new_count
+    except Exception as e:
+        st.warning(f"Failed to update visit counter: {str(e)}.")
+
+# --- Load visit counter ---
+def load_visit_counter():
+    try:
+        count = db.child("visit_count").get().val() or 0
+        st.session_state.visit_count = count
+    except Exception as e:
+        st.warning(f"Failed to load visit counter: {str(e)}.")
+
+# --- Load chat history ---
+def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
+    if not st.session_state.logged_in:
+        return []
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
+        return chat_data if chat_data else []
+    except Exception as e:
+        st.warning(f"Failed to load chat history: {str(e)}.")
+        return []
+
+# --- Save chat history ---
+def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
+    if not st.session_state.logged_in:
+        return
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
+    except Exception as e:
+        st.warning(f"Failed to save chat history: {str(e)}.")
+
+# --- Initial load of visit counter ---
+load_visit_counter()
+
+# --- Try auto-login ---
 if not st.session_state.logged_in:
-    # Login Page
+    try_auto_login()
+
+# --- Login Page ---
+if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
     st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
 
@@ -426,7 +439,7 @@ if not st.session_state.logged_in:
                 st.session_state.user_token = user['idToken']
                 st.session_state.refresh_token = user['refreshToken']
                 save_refresh_token(email, user['refreshToken'], user['idToken'])
-                st.session_state.chat_history = load_chat_history(email, st.session_state.user_token)
+                st.session_state.chat_history = load_chat_history(email, user['idToken'])
                 update_visit_counter()
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
@@ -451,8 +464,9 @@ if not st.session_state.logged_in:
                 st.error("Incorrect email or password.")
             else:
                 st.error(f"Authentication failed: {error_msg}")
-else:
-    # Sidebar
+
+# --- Sidebar ---
+if st.session_state.logged_in:
     with st.sidebar:
         st.markdown('<div class="logo-container">', unsafe_allow_html=True)
         col1, col2 = st.columns([1, 3])
@@ -505,9 +519,7 @@ else:
             st.rerun()
 
         if st.button("🚪 Logout"):
-            st.warning("Saving chat history to the cloud. Please wait...")
             save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-            time.sleep(2)  # Give 2 seconds to read any errors
             st.session_state.logged_in = False
             st.session_state.chatbot.reset()
             st.session_state.chat_history = []
@@ -515,11 +527,11 @@ else:
             st.session_state.user_name = None
             st.session_state.user_email = None
             st.session_state.user_token = None
-            st.success("Logged out successfully!")
-            time.sleep(0.5)
+            st.session_state.refresh_token = None
             st.rerun()
 
-    # Main Chat UI
+# --- Main Chat UI ---
+if st.session_state.logged_in:
     st.title("SATyr - you're SAT saviour")
 
     if st.session_state.user_name:

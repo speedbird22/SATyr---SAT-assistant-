@@ -6,18 +6,20 @@ import time
 from dotenv import load_dotenv
 import os
 import pyrebase
-from colors import COLORS, LIGHT_MODE_COLORS  # Import both dictionaries
+import requests
+import urllib.parse
+from colors import COLORS, LIGHT_MODE_COLORS
 
 # Set page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-# Initialize session state for splash screen, settings, and theme
+# Initialize session state
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 if "show_settings" not in st.session_state:
     st.session_state.show_settings = False
 if "light_mode" not in st.session_state:
-    st.session_state.light_mode = False  # Default to dark mode
+    st.session_state.light_mode = False
 
 # Display splash screen
 if not st.session_state.splash_shown:
@@ -158,8 +160,10 @@ if "user_token" not in st.session_state:
     st.session_state.user_token = None
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
+if "google_auth_state" not in st.session_state:
+    st.session_state.google_auth_state = None
 
-# --- Custom styling with chat bubbles and theme support ---
+# --- Custom styling ---
 st.markdown(
     f"""
     <style>
@@ -360,6 +364,64 @@ def save_user_data(email: str, username: str, token: str):
 # --- Initial load of visit counter ---
 load_visit_counter()
 
+# --- Google Sign-In Functions ---
+def generate_google_signin_url():
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "161672725562-pvackkrpeqp0f1ro3parl3d7ftmk0i9k.apps.googleusercontent.com")
+    redirect_uri = "http://localhost:8501"  # Update for hosted app
+    state = os.urandom(16).hex()
+    st.session_state.google_auth_state = state
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state
+    }
+    return f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+
+def exchange_code_for_token(code: str):
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "161672725562-pvackkrpeqp0f1ro3parl3d7ftmk0i9k.apps.googleusercontent.com")
+    redirect_uri = "http://localhost:8501"
+    try:
+        # Exchange code for tokens
+        response = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": client_id,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code"
+            }
+        )
+        response.raise_for_status()
+        tokens = response.json()
+        id_token = tokens.get("id_token")
+        if not id_token:
+            raise ValueError("No ID token received")
+
+        # Sign in with Firebase REST API
+        api_key = os.getenv("API_KEY", "")
+        firebase_url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={api_key}"
+        firebase_response = requests.post(
+            firebase_url,
+            json={
+                "idToken": id_token,
+                "requestUri": redirect_uri,
+                "returnIdpCredential": True,
+                "returnSecureToken": True
+            }
+        )
+        firebase_response.raise_for_status()
+        user_data = firebase_response.json()
+        return {
+            "email": user_data.get("email", ""),
+            "displayName": user_data.get("displayName", ""),
+            "idToken": user_data.get("idToken", ""),
+            "refreshToken": user_data.get("refreshToken", "")
+        }
+    except Exception as e:
+        raise Exception(f"Token exchange failed: {str(e)}")
+
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
@@ -381,11 +443,90 @@ if not st.session_state.logged_in:
     if nickname and not nickname_valid:
         st.error("Nickname cannot be empty for sign-up.")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         login = st.button("🔓 Login")
     with col2:
         signup = st.button("📝 Sign Up")
+    with col3:
+        google_signin = st.button("🌐 Sign in with Google")
+
+    # Handle Google Sign-In
+    if google_signin:
+        signin_url = generate_google_signin_url()
+        st.markdown(f'<a href="{signin_url}" target="_self">Redirecting to Google...</a>', unsafe_allow_html=True)
+        # Streamlit will rerun after redirect
+
+    # Handle Google Sign-In callback
+    query_params = st.experimental_get_query_params()
+    code = query_params.get("code", [None])[0]
+    state = query_params.get("state", [None])[0]
+    if code and state and state == st.session_state.google_auth_state:
+        try:
+            user = exchange_code_for_token(code)
+            st.session_state.logged_in = True
+            st.session_state.user_email = user["email"]
+            st.session_state.user_name = user["displayName"] or user["email"].split("@")[0]
+            st.session_state.user_token = user["idToken"]
+            st.session_state.chat_history = []
+            save_user_data(user["email"], st.session_state.user_name, user["idToken"])
+            update_visit_counter()
+            st.success(f"Logged in as {st.session_state.user_name}")
+            st.experimental_set_query_params()  # Clear query params
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Google Sign-In failed: {str(e)}")
+            st.session_state.google_auth_state = None
+            st.experimental_set_query_params()
+
+    # Existing Login Logic
+    if login and email_valid and password_valid:
+        try:
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.session_state.user_name = email.split("@")[0]
+            st.session_state.user_token = user['idToken']
+            st.session_state.chat_history = load_chat_history(email, user['idToken'])
+            update_visit_counter()
+            st.success(f"Logged in as {st.session_state.user_name}")
+            st.session_state.show_double_click_message = True
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            error_msg = str(e)
+            if "INVALID_LOGIN_CREDENTIALS" in error_msg:
+                st.error("Incorrect email or password.")
+            else:
+                st.error(f"Authentication failed: {error_msg}")
+
+    # Existing Sign-Up Logic
+    if signup and email_valid and password_valid and nickname_valid:
+        try:
+            user = auth.create_user_with_email_and_password(email, password)
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.session_state.user_name = nickname.strip()
+            st.session_state.user_token = user['idToken']
+            st.session_state.chat_history = []
+            save_user_data(email, nickname.strip(), user['idToken'])
+            update_visit_counter()
+            st.success(f"Account created for {st.session_state.user_name}")
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            error_msg = str(e)
+            if "EMAIL_EXISTS" in error_msg:
+                st.error("This email is already registered. Please log in or use a different email.")
+            elif "INVALID_EMAIL" in error_msg:
+                st.error("Invalid email format. Please check your email.")
+            elif "WEAK_PASSWORD" in error_msg:
+                st.error("Password is too weak. Please use a stronger password.")
+            elif "TOO_MANY_ATTEMPTS" in error_msg:
+                st.error("Too many attempts. Please try again later.")
+            else:
+                st.error(f"Sign-up failed: {error_msg}")
 
     with st.expander("Forgot Password?"):
         reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
@@ -405,57 +546,6 @@ if not st.session_state.logged_in:
                         st.error("Invalid email address.")
                     else:
                         st.error(f"Failed to send reset email: {error_msg}")
-
-    if signup and email_valid and password_valid and nickname_valid:
-        try:
-            # Create user
-            user = auth.create_user_with_email_and_password(email, password)
-            # Set session state
-            st.session_state.logged_in = True
-            st.session_state.user_email = email
-            st.session_state.user_name = nickname.strip()
-            st.session_state.user_token = user['idToken']
-            # Initialize empty chat history for new user
-            st.session_state.chat_history = []
-            # Save user data to Firebase
-            save_user_data(email, nickname.strip(), user['idToken'])
-            # Update visit counter
-            update_visit_counter()
-            st.success(f"Account created for {st.session_state.user_name}")
-            time.sleep(0.5)
-            st.rerun()
-        except Exception as e:
-            error_msg = str(e)
-            if "EMAIL_EXISTS" in error_msg:
-                st.error("This email is already registered. Please log in or use a different email.")
-            elif "INVALID_EMAIL" in error_msg:
-                st.error("Invalid email format. Please check your email.")
-            elif "WEAK_PASSWORD" in error_msg:
-                st.error("Password is too weak. Please use a stronger password.")
-            elif "TOO_MANY_ATTEMPTS" in error_msg:
-                st.error("Too many attempts. Please try again later.")
-            else:
-                st.error(f"Sign-up failed: {error_msg}")
-
-    if login and email_valid and password_valid:
-        try:
-            user = auth.sign_in_with_email_and_password(email, password)
-            st.session_state.logged_in = True
-            st.session_state.user_email = email
-            st.session_state.user_name = email.split("@")[0]  # Default to email prefix for login
-            st.session_state.user_token = user['idToken']
-            st.session_state.chat_history = load_chat_history(email, user['idToken'])
-            update_visit_counter()
-            st.success(f"Logged in as {st.session_state.user_name}")
-            st.session_state.show_double_click_message = True
-            time.sleep(0.5)
-            st.rerun()
-        except Exception as e:
-            error_msg = str(e)
-            if "INVALID_LOGIN_CREDENTIALS" in error_msg:
-                st.error("Incorrect email or password.")
-            else:
-                st.error(f"Authentication failed: {error_msg}")
 
 # --- Sidebar ---
 if st.session_state.logged_in:

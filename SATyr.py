@@ -158,69 +158,8 @@ if "user_email" not in st.session_state:
 if "user_token" not in st.session_state:
     st.session_state.user_token = None
 
-if "refresh_token" not in st.session_state:
-    st.session_state.refresh_token = None
-
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
-
-# --- Helper Functions for Auto-Login ---
-def save_refresh_token(email: str, refresh_token: str, token: str):
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).set({
-            "email": email,
-            "refresh_token": refresh_token
-        }, token)
-    except Exception as e:
-        st.warning(f"Failed to save refresh token: {str(e)}. Auto-login may not work.")
-
-def load_refresh_token(email: str) -> Optional[str]:
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        data = db.child("users").child(safe_email).get().val()
-        if data and "refresh_token" in data:
-            return data["refresh_token"]
-        return None
-    except Exception as e:
-        st.warning(f"Failed to load refresh token: {str(e)}. Auto-login may not work.")
-        return None
-
-def load_user_email() -> Optional[str]:
-    try:
-        users = db.child("users").get().val()
-        if users:
-            for safe_email, data in users.items():
-                if "email" in data:
-                    return data["email"]
-        return None
-    except Exception as e:
-        st.warning(f"Failed to load user email: {str(e)}.")
-        return None
-
-def try_auto_login():
-    if "logout_triggered" in st.session_state and st.session_state.logout_triggered:
-        return False
-    if not st.session_state.user_email:
-        st.session_state.user_email = load_user_email()
-    if st.session_state.user_email:
-        st.session_state.refresh_token = load_refresh_token(st.session_state.user_email)
-    if st.session_state.user_email and st.session_state.refresh_token:
-        try:
-            user = auth.refresh(st.session_state.refresh_token)
-            st.session_state.user_token = user['idToken']
-            st.session_state.logged_in = True
-            st.session_state.user_name = st.session_state.user_email.split("@")[0]
-            st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
-            update_visit_counter()
-            return True
-        except Exception as e:
-            st.warning(f"Auto-login failed: {str(e)}. Please log in manually.")
-            st.session_state.logged_in = False
-            st.session_state.refresh_token = None
-            st.session_state.user_email = None
-            st.session_state.user_token = None
-    return False
 
 # --- Custom styling ---
 st.markdown(
@@ -384,10 +323,6 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
 # --- Initial load of visit counter ---
 load_visit_counter()
 
-# --- Try auto-login ---
-if not st.session_state.logged_in:
-    try_auto_login()
-
 # --- Login Page ---
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
@@ -437,11 +372,8 @@ if not st.session_state.logged_in:
                 st.session_state.user_email = email
                 st.session_state.user_name = email.split("@")[0]
                 st.session_state.user_token = user['idToken']
-                st.session_state.refresh_token = user['refreshToken']
-                save_refresh_token(email, user['refreshToken'], user['idToken'])
                 st.session_state.chat_history = load_chat_history(email, user['idToken'])
                 update_visit_counter()
-                st.session_state.logout_triggered = False  # Reset flag
                 st.success(f"Logged in as {st.session_state.user_name}")
             elif signup:
                 user = auth.create_user_with_email_and_password(email, password)
@@ -450,10 +382,7 @@ if not st.session_state.logged_in:
                 st.session_state.user_name = email.split("@")[0]
                 login_response = auth.sign_in_with_email_and_password(email, password)
                 st.session_state.user_token = login_response['idToken']
-                st.session_state.refresh_token = login_response['refreshToken']
-                save_refresh_token(email, login_response['refreshToken'], login_response['idToken'])
                 update_visit_counter()
-                st.session_state.logout_triggered = False  # Reset flag
                 st.success(f"Account created for {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
@@ -527,8 +456,10 @@ if st.session_state.logged_in:
                 print(f"Logout: Failed to save chat history: {str(e)}")
             st.session_state.logged_in = False
             st.session_state.user_token = None
-            st.session_state.refresh_token = None
-            st.session_state.logout_triggered = True
+            st.session_state.user_email = None
+            st.session_state.user_name = None
+            st.session_state.chat_history = []
+            st.session_state.selected_conversation_index = None
             st.rerun()
 
 # --- Main Chat UI ---

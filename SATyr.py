@@ -11,9 +11,11 @@ from colors import COLORS  # Import colors
 # Set page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-# Initialize session state for splash screen
+# Initialize session state for splash screen and settings
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
+if "show_settings" not in st.session_state:
+    st.session_state.show_settings = False
 
 # Display splash screen
 if not st.session_state.splash_shown:
@@ -138,32 +140,24 @@ class SATyrAI:
 # --- Session State Init ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-
 if "chatbot" not in st.session_state:
     st.session_state.chatbot = SATyrAI()
-
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
-
 if "selected_conversation_index" not in st.session_state:
     st.session_state.selected_conversation_index = None
-
 if "show_double_click_message" not in st.session_state:
     st.session_state.show_double_click_message = False
-
 if "user_email" not in st.session_state:
     st.session_state.user_email = None
-
 if "user_token" not in st.session_state:
     st.session_state.user_token = None
-
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Custom styling ---
+# --- Custom styling with chat bubbles ---
 st.markdown(
     f"""
     <style>
@@ -271,6 +265,24 @@ st.markdown(
         image-rendering: -moz-crisp-edges;
         image-rendering: crisp-edges;
     }}
+    .user-bubble {{
+        background-color: #0084ff;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 15px 15px 0 15px;
+        display: inline-block;
+        max-width: 70%;
+        margin: 5px 0;
+    }}
+    .ai-bubble {{
+        background-color: #e9ecef;
+        color: black;
+        padding: 10px 15px;
+        border-radius: 15px 15px 15px 0;
+        display: inline-block;
+        max-width: 70%;
+        margin: 5px 0;
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -321,6 +333,18 @@ def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: st
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
     except Exception as e:
         st.warning(f"Failed to save chat history: {str(e)}.")
+
+# --- Clear chat history ---
+def clear_chat_history(email: str, token: str):
+    if not st.session_state.logged_in:
+        return
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("chat_history").remove(token)
+        st.session_state.chat_history = []
+        st.success("Chat history cleared successfully!")
+    except Exception as e:
+        st.error(f"Failed to clear chat history: {str(e)}.")
 
 # --- Initial load of visit counter ---
 load_visit_counter()
@@ -465,6 +489,10 @@ if st.session_state.logged_in:
             st.session_state.selected_conversation_index = None
             st.rerun()
 
+        if st.button("⚙️ Settings"):
+            st.session_state.show_settings = True
+            st.rerun()
+
         if st.button("🚪 Logout", key="logout_button"):
             try:
                 save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
@@ -476,10 +504,35 @@ if st.session_state.logged_in:
             st.session_state.user_name = None
             st.session_state.chat_history = []
             st.session_state.selected_conversation_index = None
+            st.session_state.show_settings = False
             st.rerun()
 
+# --- Settings Panel ---
+if st.session_state.logged_in and st.session_state.show_settings:
+    st.title("⚙️ Settings")
+    st.subheader("Update Nickname")
+    new_nickname = st.text_input("Enter new nickname:", value=st.session_state.user_name or "", key="new_nickname")
+    if st.button("Save Nickname"):
+        if new_nickname and new_nickname.strip():
+            st.session_state.user_name = new_nickname
+            st.success(f"Nickname updated to {st.session_state.user_name}")
+            st.session_state.show_settings = False
+            st.rerun()
+        else:
+            st.error("Please enter a valid nickname.")
+
+    st.subheader("Clear Chat History")
+    if st.button("Clear All Chat History"):
+        clear_chat_history(st.session_state.user_email, st.session_state.user_token)
+        st.session_state.selected_conversation_index = None
+        st.rerun()
+
+    if st.button("Back to Chat"):
+        st.session_state.show_settings = False
+        st.rerun()
+
 # --- Main Chat UI ---
-if st.session_state.logged_in:
+if st.session_state.logged_in and not st.session_state.show_settings:
     st.title("SATyr - you're SAT saviour")
 
     if st.session_state.user_name:
@@ -503,15 +556,16 @@ if st.session_state.logged_in:
         if st.session_state.selected_conversation_index is not None:
             idx = st.session_state.selected_conversation_index
             user_msg, ai_msg = st.session_state.chat_history[idx]
-            st.markdown(f"**🧑 {st.session_state.user_name}:** {user_msg}")
-            st.markdown(f"**🤖 SATyr:** {ai_msg}")
+            st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+            st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
+            st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+            st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
             with st.form(f"reply_form_{idx}", clear_on_submit=True):
                 follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    # Construct context from the current conversation
                     context = f"User: {user_msg}\nSATyr: {ai_msg}"
                     ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
                     if ai_response.startswith("[Error]"):

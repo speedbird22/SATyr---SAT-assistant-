@@ -145,7 +145,7 @@ if "logged_in" not in st.session_state:
 if "chatbot" not in st.session_state:
     st.session_state.chatbot = SATyrAI()
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+    st.session_state.chat_history = []  # List of threads, each thread: {"initial": (user_msg, ai_msg), "follow_ups": [(user_msg, ai_msg), ...]}
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
 if "selected_conversation_index" not in st.session_state:
@@ -315,19 +315,25 @@ def load_visit_counter():
         st.warning(f"Failed to load visit counter: {str(e)}.")
 
 # --- Load chat history ---
-def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
+def load_chat_history(email: str, token: str) -> List[Dict]:
     if not st.session_state.logged_in:
         return []
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
-        return chat_data if chat_data else []
+        if not chat_data:
+            return []
+        # Convert old format (list of tuples) to new format if needed
+        if isinstance(chat_data, list) and all(isinstance(item, (list, tuple)) for item in chat_data):
+            # Old format: convert to new format with each tuple as an initial message
+            return [{"initial": (user_msg, ai_msg), "follow_ups": []} for user_msg, ai_msg in chat_data]
+        return chat_data
     except Exception as e:
         st.warning(f"Failed to load chat history: {str(e)}.")
         return []
 
 # --- Save chat history ---
-def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
+def save_chat_history(email: str, chat_history: List[Dict], token: str):
     if not st.session_state.logged_in:
         return
     try:
@@ -478,7 +484,8 @@ if st.session_state.logged_in:
         st.subheader("Conversations")
 
         if st.session_state.chat_history:
-            for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
+            for idx, thread in enumerate(st.session_state.chat_history):
+                user_msg = thread["initial"][0]  # Initial user message
                 label = f"{user_msg[:20]}..."
                 if st.button(label, key=f"history_{idx}"):
                     st.session_state.selected_conversation_index = idx
@@ -558,7 +565,9 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get response: {ai_response}")
                     else:
-                        st.session_state.chat_history.append((user_input, ai_response))
+                        # Create a new thread
+                        new_thread = {"initial": (user_input, ai_response), "follow_ups": []}
+                        st.session_state.chat_history.append(new_thread)
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
                         st.rerun()
@@ -566,15 +575,16 @@ if st.session_state.logged_in and not st.session_state.show_settings:
         if st.session_state.selected_conversation_index is not None:
             idx = st.session_state.selected_conversation_index
             if 0 <= idx < len(st.session_state.chat_history):
-                user_msg, ai_msg = st.session_state.chat_history[idx]
+                thread = st.session_state.chat_history[idx]
+                # Display initial message
+                user_msg, ai_msg = thread["initial"]
                 st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                 st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
                 st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                 st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
-                # Display follow-ups if they exist
-                for i in range(idx + 1, len(st.session_state.chat_history)):
-                    follow_up_user_msg, follow_up_ai_msg = st.session_state.chat_history[i]
+                # Display follow-ups
+                for follow_up_user_msg, follow_up_ai_msg in thread.get("follow_ups", []):
                     st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                     st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
                     st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
@@ -585,13 +595,19 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in st.session_state.chat_history[:idx + 1]])
+                    # Build context from initial message and all follow-ups
+                    thread = st.session_state.chat_history[idx]
+                    context_parts = [f"User: {thread['initial'][0]}\nSATyr: {thread['initial'][1]}"]
+                    context_parts.extend([f"User: {u}\nSATyr: {a}" for u, a in thread.get("follow_ups", [])])
+                    context = "\n".join(context_parts)
                     ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
-                        # Append follow-up as a new entry under the same conversation
-                        st.session_state.chat_history.append((follow_up_input, ai_response))
+                        # Append follow-up to the current thread
+                        if "follow_ups" not in st.session_state.chat_history[idx]:
+                            st.session_state.chat_history[idx]["follow_ups"] = []
+                        st.session_state.chat_history[idx]["follow_ups"].append((follow_up_input, ai_response))
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.rerun()
 

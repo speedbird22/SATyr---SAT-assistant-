@@ -87,14 +87,16 @@ class SATyrAI:
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
-            "Text": text,
+            "Text": text,  # User's prompt
+            "Context": context if context else "",  # Entire conversation history as context
             "DomainName": self.domain,
-            "UserName": self.user_name or "Guest"
+            "UserName": self.user_name or "Guest",
+            "SourceName": "API",  # Added as specified
+            "Is_stack": False,
+            "Is_draft": False
         }
         if self.session_id:
             payload["SessionId"] = self.session_id
-        if context and isinstance(context, str) and context.strip():
-            payload["Context"] = context
         return payload
 
     def send_request(self, text: str, context: Optional[str] = None) -> str:
@@ -364,34 +366,48 @@ if not st.session_state.logged_in:
                     else:
                         st.error(f"Failed to send reset email: {error_msg}")
 
-    if (login or signup) and email_valid and password_valid:
+    if signup and email_valid and password_valid:
+        custom_username = st.text_input("Choose a username:", key="custom_username")
+        if st.button("Confirm Sign-Up", key="confirm_signup"):
+            if not custom_username or not custom_username.strip():
+                st.error("Please enter a valid username.")
+            else:
+                try:
+                    user = auth.create_user_with_email_and_password(email, password)
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    st.session_state.user_name = custom_username
+                    login_response = auth.sign_in_with_email_and_password(email, password)
+                    st.session_state.user_token = login_response['idToken']
+                    st.session_state.chat_history = load_chat_history(email, login_response['idToken'])
+                    update_visit_counter()
+                    st.success(f"Account created for {st.session_state.user_name}")
+                    st.session_state.show_double_click_message = True
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    error_msg = str(e)
+                    if "EMAIL_EXISTS" in error_msg:
+                        st.error("This email is already registered. Please log in or use a different email.")
+                    else:
+                        st.error(f"Authentication failed: {error_msg}")
+
+    if login and email_valid and password_valid:
         try:
-            if login:
-                user = auth.sign_in_with_email_and_password(email, password)
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.session_state.user_name = email.split("@")[0]
-                st.session_state.user_token = user['idToken']
-                st.session_state.chat_history = load_chat_history(email, user['idToken'])
-                update_visit_counter()
-                st.success(f"Logged in as {st.session_state.user_name}")
-            elif signup:
-                user = auth.create_user_with_email_and_password(email, password)
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.session_state.user_name = email.split("@")[0]
-                login_response = auth.sign_in_with_email_and_password(email, password)
-                st.session_state.user_token = login_response['idToken']
-                update_visit_counter()
-                st.success(f"Account created for {st.session_state.user_name}")
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.session_state.user_name = email.split("@")[0]  # Default to email prefix for login
+            st.session_state.user_token = user['idToken']
+            st.session_state.chat_history = load_chat_history(email, user['idToken'])
+            update_visit_counter()
+            st.success(f"Logged in as {st.session_state.user_name}")
             st.session_state.show_double_click_message = True
             time.sleep(0.5)
             st.rerun()
         except Exception as e:
             error_msg = str(e)
-            if "EMAIL_EXISTS" in error_msg:
-                st.error("This email is already registered. Please log in or use a different email.")
-            elif "INVALID_LOGIN_CREDENTIALS" in error_msg:
+            if "INVALID_LOGIN_CREDENTIALS" in error_msg:
                 st.error("Incorrect email or password.")
             else:
                 st.error(f"Authentication failed: {error_msg}")
@@ -495,7 +511,9 @@ if st.session_state.logged_in:
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    ai_response = st.session_state.chatbot.send_request(follow_up_input)
+                    # Construct context from the current conversation
+                    context = f"User: {user_msg}\nSATyr: {ai_msg}"
+                    ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:

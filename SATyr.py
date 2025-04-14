@@ -565,29 +565,26 @@ if st.session_state.logged_in and not st.session_state.show_settings:
 
         if st.session_state.selected_conversation_index is not None:
             idx = st.session_state.selected_conversation_index
-            user_msg, ai_msg = st.session_state.chat_history[idx]
-            st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-            st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
-            st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-            st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
+            for i, (user_msg, ai_msg) in enumerate([st.session_state.chat_history[idx]] if idx < len(st.session_state.chat_history) else []):
+                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
+                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
             with st.form(f"reply_form_{idx}", clear_on_submit=True):
                 follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    context = f"User: {user_msg}\nSATyr: {ai_msg}"
+                    context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in [st.session_state.chat_history[idx]]])
                     ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
-                        current_conversation = st.session_state.chat_history[idx]
-                        updated_conversation = (
-                            f"{current_conversation[0]}\nFollow-up: {follow_up_input}",
-                            f"{current_conversation[1]}\nFollow-up response: {ai_response}"
-                        )
-                        st.session_state.chat_history[idx] = updated_conversation
+                        # Append follow-up as a new entry instead of modifying existing one
+                        st.session_state.chat_history.append((follow_up_input, ai_response))
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                        st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
                         st.rerun()
 
             st.divider()

@@ -6,7 +6,7 @@ import time
 from dotenv import load_dotenv
 import os
 import pyrebase
-from colors import COLORS  # Import colors
+from colors import COLORS, LIGHT_MODE_COLORS  # Import both dictionaries
 
 # Set page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
@@ -164,23 +164,23 @@ st.markdown(
     f"""
     <style>
     body {{
-        background-color: {COLORS['app_background'] if not st.session_state.light_mode else '#ffffff'};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'};
+        background-color: {COLORS['app_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_app_background']};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
     }}
     .sidebar .sidebar-content {{
-        background-color: {COLORS['sidebar_background'] if not st.session_state.light_mode else '#f8f9fa'};
+        background-color: {COLORS['sidebar_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_sidebar_background']};
     }}
     .block-container {{
         padding: 2rem 2rem 2rem;
     }}
     input, textarea {{
-        background-color: {COLORS['input_background'] if not st.session_state.light_mode else '#e9ecef'} !important;
-        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'} !important;
+        background-color: {COLORS['input_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_input_background']} !important;
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']} !important;
     }}
     #visit-counter {{
         position: relative;
-        background-color: {COLORS['visit_counter_background'] if not st.session_state.light_mode else '#e9ecef'};
-        color: {COLORS['visit_counter_text'] if not st.session_state.light_mode else '#000000'};
+        background-color: {COLORS['visit_counter_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_visit_counter_background']};
+        color: {COLORS['visit_counter_text'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_visit_counter_text']};
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 14px;
@@ -193,8 +193,8 @@ st.markdown(
         bottom: 10px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: {COLORS['floating_message_background'] if not st.session_state.light_mode else '#e9ecef'};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'};
+        background-color: {COLORS['floating_message_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_floating_message_background']};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
         padding: 10px;
         border-radius: 5px;
         display: none;
@@ -212,46 +212,46 @@ st.markdown(
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button,
     form .stButton > button {{
-        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else '#007bff'};
+        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
         color: white;
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
     form .stButton > button:hover {{
-        background-color: {COLORS['button_form_hover'] if not st.session_state.light_mode else '#0056b3'};
+        background-color: {COLORS['button_form_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_hover']};
         transform: scale(1.05);
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:active,
     form .stButton > button:active {{
-        background-color: {COLORS['button_form_active'] if not st.session_state.light_mode else '#004085'};
+        background-color: {COLORS['button_form_active'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_active']};
         transform: scale(0.98);
     }}
     .stSidebar .stButton > button:not([id*="history"]),
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
-        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else '#6c757d'};
+        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
         color: white;
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else '#5a6268'};
+        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_hover']};
         transform: scale(1.05);
     }}
     .stSidebar .stButton > button:not([id*="history"]):active,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {{
-        background-color: {COLORS['button_sidebar_active'] if not st.session_state.light_mode else '#494f54'};
+        background-color: {COLORS['button_sidebar_active'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_active']};
         transform: scale(0.98);
     }}
     .stSidebar .stButton[id*="history"] > button {{
-        background-color: {COLORS['button_history_default'] if not st.session_state.light_mode else '#dee2e6'};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'};
+        background-color: {COLORS['button_history_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_default']};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
         font-size: 13px;
         padding: 6px 12px;
     }}
     .stSidebar .stButton[id*="history"] > button:hover {{
-        background-color: {COLORS['button_history_hover'] if not st.session_state.light_mode else '#ced4da'};
+        background-color: {COLORS['button_history_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_hover']};
         transform: scale(1.02);
     }}
     .stSidebar .stButton[id*="history"] > button:active {{
-        background-color: {COLORS['button_history_active'] if not st.session_state.light_mode else '#adb5bd'};
+        background-color: {COLORS['button_history_active'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_active']};
         transform: scale(0.98);
     }}
     .logo-container {{
@@ -268,7 +268,7 @@ st.markdown(
         image-rendering: crisp-edges;
     }}
     .user-bubble {{
-        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else '#007bff'};
+        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
         color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 0 15px;
@@ -277,7 +277,7 @@ st.markdown(
         margin: 5px 0;
     }}
     .ai-bubble {{
-        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else '#6c757d'};
+        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
         color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 15px 0;

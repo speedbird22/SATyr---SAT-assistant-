@@ -275,8 +275,8 @@ st.markdown(
         margin: 5px 0;
     }}
     .ai-bubble {{
-        background-color: #e9ecef;
-        color: black;
+        background-color: #4a4a4a; /* Changed to darker gray */
+        color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 15px 0;
         display: inline-block;

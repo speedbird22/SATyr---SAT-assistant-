@@ -87,7 +87,7 @@ class SATyrAI:
     def _connect(self):
         if self.conn:
             self.conn.close()
-        self.conn = http.client.HTTPSConnection(self.base_url, timeout=30)
+        self.conn = http.client.HTTPSConnection(self.base_url, timeout應用
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
@@ -323,11 +323,27 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
         if not chat_data:
             return []
-        # Convert old format (list of tuples) to new format if needed
-        if isinstance(chat_data, list) and all(isinstance(item, (list, tuple)) for item in chat_data):
-            # Old format: convert to new format with each tuple as an initial message
-            return [{"initial": (user_msg, ai_msg), "follow_ups": []} for user_msg, ai_msg in chat_data]
-        return chat_data
+        # Initialize empty list for valid threads
+        valid_threads = []
+        # Handle data as a list
+        if isinstance(chat_data, list):
+            for item in chat_data:
+                # Legacy format: [user_msg, ai_msg] or (user_msg, ai_msg)
+                if isinstance(item, (list, tuple)) and len(item) == 2 and all(isinstance(s, str) for s in item):
+                    valid_threads.append({"initial": tuple(item), "follow_ups": []})
+                # New format: dict with 'initial' key
+                elif isinstance(item, dict) and "initial" in item:
+                    initial = item.get("initial")
+                    if isinstance(initial, (list, tuple)) and len(initial) == 2 and all(isinstance(s, str) for s in initial):
+                        valid_threads.append({
+                            "initial": tuple(initial),
+                            "follow_ups": [
+                                tuple(f) for f in item.get("follow_ups", [])
+                                if isinstance(f, (list, tuple)) and len(f) == 2 and all(isinstance(s, str) for s in f)
+                            ]
+                        })
+                # Ignore any other formats
+        return valid_threads
     except Exception as e:
         st.warning(f"Failed to load chat history: {str(e)}.")
         return []
@@ -485,7 +501,13 @@ if st.session_state.logged_in:
 
         if st.session_state.chat_history:
             for idx, thread in enumerate(st.session_state.chat_history):
-                user_msg = thread["initial"][0]  # Initial user message
+                # Ensure thread is a dict with a valid initial message
+                if not isinstance(thread, dict) or "initial" not in thread:
+                    continue
+                initial = thread.get("initial")
+                if not isinstance(initial, (list, tuple)) or len(initial) < 1 or not isinstance(initial[0], str):
+                    continue
+                user_msg = initial[0]
                 label = f"{user_msg[:20]}..."
                 if st.button(label, key=f"history_{idx}"):
                     st.session_state.selected_conversation_index = idx

@@ -11,11 +11,13 @@ from colors import COLORS  # Import colors
 # Set page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-# Initialize session state for splash screen and settings
+# Initialize session state for splash screen, settings, and theme
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 if "show_settings" not in st.session_state:
     st.session_state.show_settings = False
+if "light_mode" not in st.session_state:
+    st.session_state.light_mode = False  # Default to dark mode
 
 # Display splash screen
 if not st.session_state.splash_shown:
@@ -157,28 +159,28 @@ if "user_token" not in st.session_state:
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 
-# --- Custom styling with chat bubbles ---
+# --- Custom styling with chat bubbles and theme support ---
 st.markdown(
     f"""
     <style>
     body {{
-        background-color: {COLORS['app_background']};
-        color: {COLORS['text_color']};
+        background-color: {COLORS['app_background'] if not st.session_state.light_mode else '#ffffff'};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'};
     }}
     .sidebar .sidebar-content {{
-        background-color: {COLORS['sidebar_background']};
+        background-color: {COLORS['sidebar_background'] if not st.session_state.light_mode else '#f8f9fa'};
     }}
     .block-container {{
         padding: 2rem 2rem 2rem;
     }}
     input, textarea {{
-        background-color: {COLORS['input_background']} !important;
-        color: white !important;
+        background-color: {COLORS['input_background'] if not st.session_state.light_mode else '#e9ecef'} !important;
+        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'} !important;
     }}
     #visit-counter {{
         position: relative;
-        background-color: {COLORS['visit_counter_background']};
-        color: {COLORS['visit_counter_text']};
+        background-color: {COLORS['visit_counter_background'] if not st.session_state.light_mode else '#e9ecef'};
+        color: {COLORS['visit_counter_text'] if not st.session_state.light_mode else '#000000'};
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 14px;
@@ -191,8 +193,8 @@ st.markdown(
         bottom: 10px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: {COLORS['floating_message_background']};
-        color: white;
+        background-color: {COLORS['floating_message_background'] if not st.session_state.light_mode else '#e9ecef'};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'};
         padding: 10px;
         border-radius: 5px;
         display: none;
@@ -210,46 +212,46 @@ st.markdown(
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button,
     form .stButton > button {{
-        background-color: {COLORS['button_form_default']};
+        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else '#007bff'};
         color: white;
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
     form .stButton > button:hover {{
-        background-color: {COLORS['button_form_hover']};
+        background-color: {COLORS['button_form_hover'] if not st.session_state.light_mode else '#0056b3'};
         transform: scale(1.05);
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:active,
     form .stButton > button:active {{
-        background-color: {COLORS['button_form_active']};
+        background-color: {COLORS['button_form_active'] if not st.session_state.light_mode else '#004085'};
         transform: scale(0.98);
     }}
     .stSidebar .stButton > button:not([id*="history"]),
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
-        background-color: {COLORS['button_sidebar_default']};
+        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else '#6c757d'};
         color: white;
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {COLORS['button_sidebar_hover']};
+        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else '#5a6268'};
         transform: scale(1.05);
     }}
     .stSidebar .stButton > button:not([id*="history"]):active,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {{
-        background-color: {COLORS['button_sidebar_active']};
+        background-color: {COLORS['button_sidebar_active'] if not st.session_state.light_mode else '#494f54'};
         transform: scale(0.98);
     }}
     .stSidebar .stButton[id*="history"] > button {{
-        background-color: {COLORS['button_history_default']};
-        color: {COLORS['text_color']};
+        background-color: {COLORS['button_history_default'] if not st.session_state.light_mode else '#dee2e6'};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else '#000000'};
         font-size: 13px;
         padding: 6px 12px;
     }}
     .stSidebar .stButton[id*="history"] > button:hover {{
-        background-color: {COLORS['button_history_hover']};
+        background-color: {COLORS['button_history_hover'] if not st.session_state.light_mode else '#ced4da'};
         transform: scale(1.02);
     }}
     .stSidebar .stButton[id*="history"] > button:active {{
-        background-color: {COLORS['button_history_active']};
+        background-color: {COLORS['button_history_active'] if not st.session_state.light_mode else '#adb5bd'};
         transform: scale(0.98);
     }}
     .logo-container {{
@@ -266,7 +268,7 @@ st.markdown(
         image-rendering: crisp-edges;
     }}
     .user-bubble {{
-        background-color: #0084ff;
+        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else '#007bff'};
         color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 0 15px;
@@ -275,7 +277,7 @@ st.markdown(
         margin: 5px 0;
     }}
     .ai-bubble {{
-        background-color: #4a4a4a; /* Changed to darker gray */
+        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else '#6c757d'};
         color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 15px 0;
@@ -525,6 +527,14 @@ if st.session_state.logged_in and st.session_state.show_settings:
     if st.button("Clear All Chat History"):
         clear_chat_history(st.session_state.user_email, st.session_state.user_token)
         st.session_state.selected_conversation_index = None
+        st.rerun()
+
+    st.subheader("Theme")
+    light_mode = st.checkbox("Enable Light Mode", value=st.session_state.light_mode)
+    if st.button("Apply Theme"):
+        st.session_state.light_mode = light_mode
+        st.success("Theme applied! Returning to chat...")
+        st.session_state.show_settings = False
         st.rerun()
 
     if st.button("Back to Chat"):

@@ -325,7 +325,7 @@ def load_chat_history(email: str, token: str) -> List[Tuple[str, List[Tuple[str,
             # Convert flat list to nested structure if needed
             if all(isinstance(item, tuple) and len(item) == 2 for item in chat_data):
                 return [(item[0], [(item[0], item[1])] if len(item) == 2 else []) for item in chat_data]
-            return [(item[0], item[1]) for item in chat_data if isinstance(item, tuple) and len(item) == 2]
+            return [(item[0], item[1]) for item in chat_data if isinstance(item, tuple) and len(item) == 2 and isinstance(item[1], list)]
         return []
     except Exception as e:
         st.warning(f"Failed to load chat history: {str(e)}.")
@@ -570,34 +570,45 @@ if st.session_state.logged_in and not st.session_state.show_settings:
 
         if st.session_state.selected_conversation_index is not None:
             if 0 <= st.session_state.selected_conversation_index < len(st.session_state.chat_history):
-                initial_msg, thread = st.session_state.chat_history[st.session_state.selected_conversation_index]
-                # Display initial message and response
-                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {initial_msg}</div>', unsafe_allow_html=True)
-                if thread and len(thread) > 0 and thread[0][1]:  # Ensure thread has at least one response
+                conversation = st.session_state.chat_history[st.session_state.selected_conversation_index]
+                if isinstance(conversation, tuple) and len(conversation) == 2:
+                    initial_msg, thread = conversation
+                    # Display initial message and response
                     st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                    st.markdown(f'<div class="ai-bubble">🤖 SATyr: {thread[0][1]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {initial_msg}</div>', unsafe_allow_html=True)
+                    if thread and len(thread) > 0 and thread[0][1]:  # Ensure thread has at least one response
+                        st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="ai-bubble">🤖 SATyr: {thread[0][1]}</div>', unsafe_allow_html=True)
 
-                # Display follow-ups
-                for user_msg, ai_msg in thread[1:]:  # Show only follow-ups
-                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                    st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
-                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                    st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
+                    # Display follow-ups
+                    for user_msg, ai_msg in thread[1:]:  # Show only follow-ups
+                        st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
+                        st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
+                else:
+                    st.error("Invalid conversation format in chat history.")
+            else:
+                st.error("Selected conversation index out of range.")
 
             with st.form(f"reply_form_{st.session_state.selected_conversation_index}", clear_on_submit=True):
                 follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{st.session_state.selected_conversation_index}")
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in [(initial_msg, thread[0][1]) if thread and len(thread) > 0 and thread[0][1] else []] + thread])
-                    ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
-                    if ai_response.startswith("[Error]"):
-                        st.error(f"Failed to get follow-up response: {ai_response}")
+                    conversation = st.session_state.chat_history[st.session_state.selected_conversation_index]
+                    if isinstance(conversation, tuple) and len(conversation) == 2:
+                        initial_msg, thread = conversation
+                        context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in [(initial_msg, thread[0][1]) if thread and len(thread) > 0 and thread[0][1] else []] + thread])
+                        ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
+                        if ai_response.startswith("[Error]"):
+                            st.error(f"Failed to get follow-up response: {ai_response}")
+                        else:
+                            # Append follow-up to the existing thread
+                            st.session_state.chat_history[st.session_state.selected_conversation_index][1].append((follow_up_input, ai_response))
+                            save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                            st.rerun()
                     else:
-                        # Append follow-up to the existing thread
-                        st.session_state.chat_history[st.session_state.selected_conversation_index][1].append((follow_up_input, ai_response))
-                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-                        st.rerun()
+                        st.error("Cannot process follow-up: Invalid conversation format.")
 
             st.divider()

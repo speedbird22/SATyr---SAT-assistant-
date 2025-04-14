@@ -348,15 +348,6 @@ def clear_chat_history(email: str, token: str):
     except Exception as e:
         st.error(f"Failed to clear chat history: {str(e)}.")
 
-# --- Save user data ---
-def save_user_data(email: str, username: str, token: str):
-    try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        user_data = {"username": username, "email": email}
-        db.child("users").child(safe_email).child("profile").set(user_data, token)
-    except Exception as e:
-        st.warning(f"Failed to save user data: {str(e)}.")
-
 # --- Initial load of visit counter ---
 load_visit_counter()
 
@@ -402,39 +393,30 @@ if not st.session_state.logged_in:
                         st.error(f"Failed to send reset email: {error_msg}")
 
     if signup and email_valid and password_valid:
-        with st.form("signup_form", clear_on_submit=True):
-            custom_username = st.text_input("Choose a username:", key="custom_username")
-            confirm_signup = st.form_submit_button("Confirm Sign-Up")
-            if confirm_signup:
-                if not custom_username or not custom_username.strip():
-                    st.error("Please enter a valid username.")
-                else:
-                    try:
-                        # Create user and get authentication details
-                        user = auth.create_user_with_email_and_password(email, password)
-                        # Set session state
-                        st.session_state.logged_in = True
-                        st.session_state.user_email = email
-                        st.session_state.user_name = custom_username
-                        st.session_state.user_token = user['idToken']
-                        # Initialize chat history and save user data
-                        st.session_state.chat_history = []
-                        save_user_data(email, custom_username, user['idToken'])
-                        update_visit_counter()
-                        st.success(f"Account created for {custom_username}")
-                        st.session_state.show_double_click_message = True
-                        time.sleep(1)  # Slight delay to ensure state updates
-                        st.rerun()
-                    except Exception as e:
-                        error_msg = str(e)
-                        if "EMAIL_EXISTS" in error_msg:
-                            st.error("This email is already registered. Please log in or use a different email.")
-                        elif "INVALID_EMAIL" in error_msg:
-                            st.error("Invalid email format.")
-                        elif "WEAK_PASSWORD" in error_msg:
-                            st.error("Password is too weak. Please use a stronger password.")
-                        else:
-                            st.error(f"Failed to create account: {error_msg}")
+        custom_username = st.text_input("Choose a username:", key="custom_username")
+        if st.button("Confirm Sign-Up", key="confirm_signup"):
+            if not custom_username or not custom_username.strip():
+                st.error("Please enter a valid username.")
+            else:
+                try:
+                    user = auth.create_user_with_email_and_password(email, password)
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    st.session_state.user_name = custom_username
+                    login_response = auth.sign_in_with_email_and_password(email, password)
+                    st.session_state.user_token = login_response['idToken']
+                    st.session_state.chat_history = load_chat_history(email, login_response['idToken'])
+                    update_visit_counter()
+                    st.success(f"Account created for {st.session_state.user_name}")
+                    st.session_state.show_double_click_message = True
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    error_msg = str(e)
+                    if "EMAIL_EXISTS" in error_msg:
+                        st.error("This email is already registered. Please log in or use a different email.")
+                    else:
+                        st.error(f"Authentication failed: {error_msg}")
 
     if login and email_valid and password_valid:
         try:
@@ -535,7 +517,6 @@ if st.session_state.logged_in and st.session_state.show_settings:
     if st.button("Save Nickname"):
         if new_nickname and new_nickname.strip():
             st.session_state.user_name = new_nickname
-            save_user_data(st.session_state.user_email, new_nickname, st.session_state.user_token)
             st.success(f"Nickname updated to {st.session_state.user_name}")
             st.session_state.show_settings = False
             st.rerun()

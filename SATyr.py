@@ -322,10 +322,18 @@ def load_chat_history(email: str, token: str) -> List[Tuple[str, List[Tuple[str,
         safe_email = email.replace(".", "_").replace("@", "_")
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
         if chat_data:
-            # Convert flat list to nested structure if needed
-            if all(isinstance(item, tuple) and len(item) == 2 for item in chat_data):
-                return [(item[0], [(item[0], item[1])] if len(item) == 2 else []) for item in chat_data]
-            return [(item[0], item[1]) for item in chat_data if isinstance(item, tuple) and len(item) == 2 and isinstance(item[1], list)]
+            converted_history = []
+            for item in chat_data:
+                if isinstance(item, tuple) and len(item) == 2:
+                    if isinstance(item[1], list):  # Already in nested format
+                        converted_history.append((item[0], item[1]))
+                    elif isinstance(item[1], str):  # Flat format (user_msg, ai_msg)
+                        converted_history.append((item[0], [(item[0], item[1])]))
+                    else:
+                        st.warning(f"Skipping invalid item in chat history: {item}")
+                else:
+                    st.warning(f"Skipping malformed item in chat history: {item}")
+            return converted_history if converted_history else []
         return []
     except Exception as e:
         st.warning(f"Failed to load chat history: {str(e)}.")
@@ -587,7 +595,8 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                         st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                         st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
                 else:
-                    st.error("Invalid conversation format in chat history.")
+                    st.error("Invalid conversation format in chat history. Please clear history and start a new conversation.")
+                    st.session_state.chat_history[st.session_state.selected_conversation_index] = ("", [])  # Reset to empty conversation
             else:
                 st.error("Selected conversation index out of range.")
 
@@ -609,6 +618,7 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                             save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                             st.rerun()
                     else:
-                        st.error("Cannot process follow-up: Invalid conversation format.")
+                        st.error("Cannot process follow-up: Invalid conversation format. Please clear history and start a new conversation.")
+                        st.session_state.chat_history[st.session_state.selected_conversation_index] = ("", [])  # Reset to empty conversation
 
             st.divider()

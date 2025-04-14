@@ -5,32 +5,19 @@ from typing import Optional, Dict, List, Tuple
 import time
 from dotenv import load_dotenv
 import os
-import requests
-import urllib.parse
-from colors import COLORS, LIGHT_MODE_COLORS
+import pyrebase
+from colors import COLORS, LIGHT_MODE_COLORS  # Import both dictionaries
 
 # Set page config
 st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
-# Initialize session state
+# Initialize session state for splash screen, settings, and theme
 if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 if "show_settings" not in st.session_state:
     st.session_state.show_settings = False
 if "light_mode" not in st.session_state:
-    st.session_state.light_mode = False
-if "chatbot" not in st.session_state:
-    st.session_state.chatbot = None
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "user_name" not in st.session_state:
-    st.session_state.user_name = None
-if "selected_conversation_index" not in st.session_state:
-    st.session_state.selected_conversation_index = None
-if "visit_count" not in st.session_state:
-    st.session_state.visit_count = 0
-if "asked_for_name" not in st.session_state:
-    st.session_state.asked_for_name = False
+    st.session_state.light_mode = False  # Default to dark mode
 
 # Display splash screen
 if not st.session_state.splash_shown:
@@ -61,8 +48,29 @@ if not st.session_state.splash_shown:
     st.session_state.splash_shown = True
     st.rerun()
 
-# Load environment variables (if needed for other APIs)
+# Load environment variables
 load_dotenv()
+
+# Firebase configuration
+firebase_config = {
+    "apiKey": os.getenv("API_KEY", ""),
+    "authDomain": os.getenv("AUTH_DOMAIN", ""),
+    "projectId": os.getenv("PROJECT_ID", ""),
+    "storageBucket": os.getenv("STORAGE_BUCKET", ""),
+    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID", ""),
+    "appId": os.getenv("APP_ID", ""),
+    "measurementId": os.getenv("MEASUREMENT_ID", ""),
+    "databaseURL": os.getenv("DATABASE_URL", "")
+}
+
+# Initialize Firebase
+try:
+    firebase = pyrebase.initialize_app(firebase_config)
+    auth = firebase.auth()
+    db = firebase.database()
+except Exception as e:
+    st.error(f"Failed to initialize Firebase: {str(e)}")
+    st.stop()
 
 # AI Client
 class SATyrAI:
@@ -83,11 +91,11 @@ class SATyrAI:
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
-            "Text": text,
-            "Context": context if context else "",
+            "Text": text,  # User's prompt
+            "Context": context if context else "",  # Entire conversation history as context
             "DomainName": self.domain,
             "UserName": self.user_name or "Guest",
-            "SourceName": "API",
+            "SourceName": "API",  # Added as specified
             "Is_stack": False,
             "Is_draft": False
         }
@@ -131,11 +139,27 @@ class SATyrAI:
         self.context = None
         self._connect()
 
-# Initialize chatbot
-if st.session_state.chatbot is None:
+# --- Session State Init ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "chatbot" not in st.session_state:
     st.session_state.chatbot = SATyrAI()
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "user_name" not in st.session_state:
+    st.session_state.user_name = None
+if "selected_conversation_index" not in st.session_state:
+    st.session_state.selected_conversation_index = None
+if "show_double_click_message" not in st.session_state:
+    st.session_state.show_double_click_message = False
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+if "user_token" not in st.session_state:
+    st.session_state.user_token = None
+if "visit_count" not in st.session_state:
+    st.session_state.visit_count = 0
 
-# --- Custom styling ---
+# --- Custom styling with chat bubbles and theme support ---
 st.markdown(
     f"""
     <style>
@@ -163,6 +187,18 @@ st.markdown(
         margin-top: 5px;
         display: inline-block;
         z-index: 1001;
+    }}
+    #floating-message {{
+        position: fixed;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: {COLORS['floating_message_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_floating_message_background']};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        padding: 10px;
+        border-radius: 5px;
+        display: none;
+        z-index: 1000;
     }}
     .stButton > button {{
         border: none;
@@ -254,88 +290,261 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# --- Update visit counter (local) ---
-def update_visit_counter():
-    st.session_state.visit_count += 1
+# --- Show double-click message ---
+if st.session_state.show_double_click_message:
+    st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
+    time.sleep(2)
+    st.session_state.show_double_click_message = False
 
-# --- Clear chat history (session state) ---
-def clear_chat_history():
-    st.session_state.chat_history = []
-    st.success("Chat history cleared successfully!")
+# --- Update visit counter ---
+def update_visit_counter():
+    try:
+        current_count = db.child("visit_count").get().val() or 0
+        new_count = current_count + 1
+        db.child("visit_count").set(new_count)
+        st.session_state.visit_count = new_count
+    except Exception as e:
+        st.warning(f"Failed to update visit counter: {str(e)}.")
+
+# --- Load visit counter ---
+def load_visit_counter():
+    try:
+        count = db.child("visit_count").get().val() or 0
+        st.session_state.visit_count = count
+    except Exception as e:
+        st.warning(f"Failed to load visit counter: {str(e)}.")
+
+# --- Load chat history ---
+def load_chat_history(email: str, token: str) -> List[Tuple[str, str]]:
+    if not st.session_state.logged_in:
+        return []
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
+        return chat_data if chat_data else []
+    except Exception as e:
+        st.warning(f"Failed to load chat history: {str(e)}.")
+        return []
+
+# --- Save chat history ---
+def save_chat_history(email: str, chat_history: List[Tuple[str, str]], token: str):
+    if not st.session_state.logged_in:
+        return
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
+    except Exception as e:
+        st.warning(f"Failed to save chat history: {str(e)}.")
+
+# --- Clear chat history ---
+def clear_chat_history(email: str, token: str):
+    if not st.session_state.logged_in:
+        return
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        db.child("users").child(safe_email).child("chat_history").remove(token)
+        st.session_state.chat_history = []
+        st.success("Chat history cleared successfully!")
+    except Exception as e:
+        st.error(f"Failed to clear chat history: {str(e)}.")
+
+# --- Save user data ---
+def save_user_data(email: str, username: str, token: str):
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        user_data = {"username": username, "email": email}
+        db.child("users").child(safe_email).child("profile").set(user_data, token)
+    except Exception as e:
+        st.warning(f"Failed to save user data: {str(e)}.")
+
+# --- Initial load of visit counter ---
+load_visit_counter()
+
+# --- Login Page ---
+if not st.session_state.logged_in:
+    st.title("🔐 SATyr Login")
+    st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
+
+    email = st.text_input("📧 Email")
+    password = st.text_input("🔒 Password", type="password")
+
+    email_valid = "@" in email if email else False
+    if email and not email_valid:
+        st.error("Please enter a valid email address containing '@'.")
+
+    password_valid = len(password) >= 6 if password else False
+    if password and not password_valid:
+        st.error("Password must be at least 6 characters long.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        login = st.button("🔓 Login")
+    with col2:
+        signup = st.button("📝 Sign Up")
+
+    with st.expander("Forgot Password?"):
+        reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
+        reset_button = st.button("🔄 Send Reset Email")
+        if reset_button and reset_email:
+            if "@" not in reset_email:
+                st.error("Please enter a valid email address containing '@'.")
+            else:
+                try:
+                    auth.send_password_reset_email(reset_email)
+                    st.success("Password reset email sent! Check your inbox.")
+                except Exception as e:
+                    error_msg = str(e)
+                    if "EMAIL_NOT_FOUND" in error_msg:
+                        st.error("No account found with this email.")
+                    elif "INVALID_EMAIL" in error_msg:
+                        st.error("Invalid email address.")
+                    else:
+                        st.error(f"Failed to send reset email: {error_msg}")
+
+    if signup and email_valid and password_valid:
+        with st.form("signup_form", clear_on_submit=True):
+            custom_username = st.text_input("Choose a username:", key="custom_username")
+            confirm_signup = st.form_submit_button("Confirm Sign-Up")
+            if confirm_signup:
+                if not custom_username or not custom_username.strip():
+                    st.error("Please enter a valid username.")
+                else:
+                    try:
+                        # Create user and get authentication details
+                        user = auth.create_user_with_email_and_password(email, password)
+                        # Set session state
+                        st.session_state.logged_in = True
+                        st.session_state.user_email = email
+                        st.session_state.user_name = custom_username
+                        st.session_state.user_token = user['idToken']
+                        # Initialize chat history and save user data
+                        st.session_state.chat_history = []
+                        save_user_data(email, custom_username, user['idToken'])
+                        update_visit_counter()
+                        st.success(f"Account created for {custom_username}")
+                        st.session_state.show_double_click_message = True
+                        time.sleep(1)  # Slight delay to ensure state updates
+                        st.rerun()
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "EMAIL_EXISTS" in error_msg:
+                            st.error("This email is already registered. Please log in or use a different email.")
+                        elif "INVALID_EMAIL" in error_msg:
+                            st.error("Invalid email format.")
+                        elif "WEAK_PASSWORD" in error_msg:
+                            st.error("Password is too weak. Please use a stronger password.")
+                        else:
+                            st.error(f"Failed to create account: {error_msg}")
+
+    if login and email_valid and password_valid:
+        try:
+            user = auth.sign_in_with_email_and_password(email, password)
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.session_state.user_name = email.split("@")[0]  # Default to email prefix for login
+            st.session_state.user_token = user['idToken']
+            st.session_state.chat_history = load_chat_history(email, user['idToken'])
+            update_visit_counter()
+            st.success(f"Logged in as {st.session_state.user_name}")
+            st.session_state.show_double_click_message = True
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            error_msg = str(e)
+            if "INVALID_LOGIN_CREDENTIALS" in error_msg:
+                st.error("Incorrect email or password.")
+            else:
+                st.error(f"Authentication failed: {error_msg}")
 
 # --- Sidebar ---
-with st.sidebar:
-    st.markdown('<div class="logo-container">', unsafe_allow_html=True)
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.image("logo.jpg", clamp=True, output_format="auto")
-    with col2:
-        st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown(
-        """
-        <style>
-        [data-testid="stImage"] img {
-            max-width: 50px;
-            height: auto;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
-        }
-        .logo-container {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 10px;
-        }
-        div[data-testid="stSidebar"] h1.sidebar-title {
-            font-size: 45px !important;
-            margin: 0;
-            line-height: 1;
-            vertical-align: middle;
-            margin-top: -15px !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
-    st.subheader("Conversations")
+if st.session_state.logged_in:
+    with st.sidebar:
+        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.image("logo.jpg", clamp=True, output_format="auto")
+        with col2:
+            st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(
+            """
+            <style>
+            [data-testid="stImage"] img {
+                max-width: 50px;
+                height: auto;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+            }
+            .logo-container {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 10px;
+            }
+            div[data-testid="stSidebar"] h1.sidebar-title {
+                font-size: 45px !important;
+                margin: 0;
+                line-height: 1;
+                vertical-align: middle;
+                margin-top: -15px !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
+        st.subheader("Conversations")
 
-    if st.session_state.chat_history:
-        for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
-            label = f"{user_msg[:20]}..."
-            if st.button(label, key=f"history_{idx}"):
-                st.session_state.selected_conversation_index = idx
-                st.rerun()
-    else:
-        st.info("No conversations yet.")
+        if st.session_state.chat_history:
+            for idx, (user_msg, ai_msg) in enumerate(st.session_state.chat_history):
+                label = f"{user_msg[:20]}..."
+                if st.button(label, key=f"history_{idx}"):
+                    st.session_state.selected_conversation_index = idx
+                    st.rerun()
+        else:
+            st.info("No conversations yet.")
 
-    if st.button("🔄 New Session"):
-        st.session_state.chatbot.reset()
-        st.session_state.selected_conversation_index = None
-        st.rerun()
+        if st.button("🔄 New Session"):
+            st.session_state.chatbot.reset()
+            st.session_state.selected_conversation_index = None
+            st.rerun()
 
-    if st.button("⚙️ Settings"):
-        st.session_state.show_settings = True
-        st.rerun()
+        if st.button("⚙️ Settings"):
+            st.session_state.show_settings = True
+            st.rerun()
+
+        if st.button("🚪 Logout", key="logout_button"):
+            try:
+                save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+            except Exception as e:
+                print(f"Logout: Failed to save chat history: {str(e)}")
+            st.session_state.logged_in = False
+            st.session_state.user_token = None
+            st.session_state.user_email = None
+            st.session_state.user_name = None
+            st.session_state.chat_history = []
+            st.session_state.selected_conversation_index = None
+            st.session_state.show_settings = False
+            st.rerun()
 
 # --- Settings Panel ---
-if st.session_state.show_settings:
+if st.session_state.logged_in and st.session_state.show_settings:
     st.title("⚙️ Settings")
-    st.subheader("Update Name")
-    new_name = st.text_input("Enter your name:", value=st.session_state.user_name or "", key="new_name")
-    if st.button("Save Name"):
-        if new_name and new_name.strip():
-            st.session_state.user_name = new_name.strip()
-            st.success(f"Name updated to {st.session_state.user_name}")
+    st.subheader("Update Nickname")
+    new_nickname = st.text_input("Enter new nickname:", value=st.session_state.user_name or "", key="new_nickname")
+    if st.button("Save Nickname"):
+        if new_nickname and new_nickname.strip():
+            st.session_state.user_name = new_nickname
+            save_user_data(st.session_state.user_email, new_nickname, st.session_state.user_token)
+            st.success(f"Nickname updated to {st.session_state.user_name}")
             st.session_state.show_settings = False
             st.rerun()
         else:
-            st.error("Please enter a valid name.")
+            st.error("Please enter a valid nickname.")
 
     st.subheader("Clear Chat History")
     if st.button("Clear All Chat History"):
-        clear_chat_history()
+        clear_chat_history(st.session_state.user_email, st.session_state.user_token)
         st.session_state.selected_conversation_index = None
         st.rerun()
 
@@ -352,75 +561,57 @@ if st.session_state.show_settings:
         st.rerun()
 
 # --- Main Chat UI ---
-else:
+if st.session_state.logged_in and not st.session_state.show_settings:
     st.title("SATyr - you're SAT saviour")
-    update_visit_counter()
 
     if st.session_state.user_name:
         st.session_state.chatbot.user_name = st.session_state.user_name
-    else:
-        st.session_state.chatbot.user_name = "Guest"
 
-    # Ask for name if not set
-    if not st.session_state.user_name and not st.session_state.asked_for_name:
-        st.session_state.chat_history.append(("", "Hey there! What's your name?"))
-        st.session_state.asked_for_name = True
-        st.session_state.selected_conversation_index = 0
+        if st.session_state.selected_conversation_index is None:
+            with st.form("chat_form", clear_on_submit=True):
+                user_input = st.text_input("💬 Your message:", placeholder="Type your message here...")
+                submitted = st.form_submit_button("Send")
 
-    if st.session_state.selected_conversation_index is None:
-        with st.form("chat_form", clear_on_submit=True):
-            user_input = st.text_input("💬 Your message:", placeholder="Type your message here...")
-            submitted = st.form_submit_button("Send")
-
-            if submitted and user_input:
-                if not st.session_state.user_name:
-                    # First input is the name
-                    st.session_state.user_name = user_input.strip()
-                    st.session_state.chat_history.append((user_input, f"Nice to meet you, {st.session_state.user_name}! How can I help you today?"))
-                    st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
-                else:
+                if submitted and user_input:
                     ai_response = st.session_state.chatbot.send_request(user_input)
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get response: {ai_response}")
                     else:
                         st.session_state.chat_history.append((user_input, ai_response))
+                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
-                st.rerun()
+                        st.rerun()
 
-    if st.session_state.selected_conversation_index is not None:
-        idx = st.session_state.selected_conversation_index
-        if 0 <= idx < len(st.session_state.chat_history):
-            user_msg, ai_msg = st.session_state.chat_history[idx]
-            if user_msg or ai_msg:
+        if st.session_state.selected_conversation_index is not None:
+            idx = st.session_state.selected_conversation_index
+            if 0 <= idx < len(st.session_state.chat_history):
+                user_msg, ai_msg = st.session_state.chat_history[idx]
                 st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                if user_msg:
-                    st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name or "You"}: {user_msg}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
                 st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                 st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
-            for i in range(idx + 1, len(st.session_state.chat_history)):
-                follow_up_user_msg, follow_up_ai_msg = st.session_state.chat_history[i]
-                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name or "You"}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
-                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                st.markdown(f'<div class="ai-bubble">🤖 SATyr: {follow_up_ai_msg}</div>', unsafe_allow_html=True)
+                # Display follow-ups if they exist
+                for i in range(idx + 1, len(st.session_state.chat_history)):
+                    follow_up_user_msg, follow_up_ai_msg = st.session_state.chat_history[i]
+                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                    st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
+                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
+                    st.markdown(f'<div class="ai-bubble">🤖 SATyr: {follow_up_ai_msg}</div>', unsafe_allow_html=True)
 
-        with st.form(f"reply_form_{idx}", clear_on_submit=True):
-            follow_up_input = st.text_input("💬 Your message:", placeholder="Type your message here...", key=f"follow_up_{idx}")
-            reply_submitted = st.form_submit_button("Send")
+            with st.form(f"reply_form_{idx}", clear_on_submit=True):
+                follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
+                reply_submitted = st.form_submit_button("Reply")
 
-            if reply_submitted and follow_up_input:
-                if not st.session_state.user_name:
-                    # First input is the name
-                    st.session_state.user_name = follow_up_input.strip()
-                    st.session_state.chat_history.append((follow_up_input, f"Nice to meet you, {st.session_state.user_name}! How can I help you today?"))
-                else:
+                if reply_submitted and follow_up_input:
                     context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in st.session_state.chat_history[:idx + 1]])
                     ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
+                        # Append follow-up as a new entry under the same conversation
                         st.session_state.chat_history.append((follow_up_input, ai_response))
-                st.rerun()
+                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                        st.rerun()
 
-        st.divider()
+            st.divider()

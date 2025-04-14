@@ -91,11 +91,11 @@ class SATyrAI:
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
-            "Text": text,  # User's prompt
-            "Context": context if context else "",  # Entire conversation history as context
+            "Text": text,
+            "Context": context if context else "",
             "DomainName": self.domain,
             "UserName": self.user_name or "Guest",
-            "SourceName": "API",  # Added as specified
+            "SourceName": "API",
             "Is_stack": False,
             "Is_draft": False
         }
@@ -367,6 +367,7 @@ if not st.session_state.logged_in:
 
     email = st.text_input("📧 Email")
     password = st.text_input("🔒 Password", type="password")
+    nickname = st.text_input("👤 Nickname (for sign-up)", key="signup_nickname")
 
     email_valid = "@" in email if email else False
     if email and not email_valid:
@@ -375,6 +376,10 @@ if not st.session_state.logged_in:
     password_valid = len(password) >= 6 if password else False
     if password and not password_valid:
         st.error("Password must be at least 6 characters long.")
+
+    nickname_valid = len(nickname) > 0 if nickname else False
+    if nickname and not nickname_valid:
+        st.error("Nickname cannot be empty for sign-up.")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -401,40 +406,36 @@ if not st.session_state.logged_in:
                     else:
                         st.error(f"Failed to send reset email: {error_msg}")
 
-    if signup and email_valid and password_valid:
-        with st.form("signup_form", clear_on_submit=True):
-            custom_username = st.text_input("Choose a username:", key="custom_username")
-            confirm_signup = st.form_submit_button("Confirm Sign-Up")
-            if confirm_signup:
-                if not custom_username or not custom_username.strip():
-                    st.error("Please enter a valid username.")
-                else:
-                    try:
-                        # Create user and get authentication details
-                        user = auth.create_user_with_email_and_password(email, password)
-                        # Set session state
-                        st.session_state.logged_in = True
-                        st.session_state.user_email = email
-                        st.session_state.user_name = custom_username
-                        st.session_state.user_token = user['idToken']
-                        # Initialize chat history and save user data
-                        st.session_state.chat_history = []
-                        save_user_data(email, custom_username, user['idToken'])
-                        update_visit_counter()
-                        st.success(f"Account created for {custom_username}")
-                        st.session_state.show_double_click_message = True
-                        time.sleep(1)  # Slight delay to ensure state updates
-                        st.rerun()
-                    except Exception as e:
-                        error_msg = str(e)
-                        if "EMAIL_EXISTS" in error_msg:
-                            st.error("This email is already registered. Please log in or use a different email.")
-                        elif "INVALID_EMAIL" in error_msg:
-                            st.error("Invalid email format.")
-                        elif "WEAK_PASSWORD" in error_msg:
-                            st.error("Password is too weak. Please use a stronger password.")
-                        else:
-                            st.error(f"Failed to create account: {error_msg}")
+    if signup and email_valid and password_valid and nickname_valid:
+        try:
+            # Create user
+            user = auth.create_user_with_email_and_password(email, password)
+            # Set session state
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.session_state.user_name = nickname.strip()
+            st.session_state.user_token = user['idToken']
+            # Initialize empty chat history for new user
+            st.session_state.chat_history = []
+            # Save user data to Firebase
+            save_user_data(email, nickname.strip(), user['idToken'])
+            # Update visit counter
+            update_visit_counter()
+            st.success(f"Account created for {st.session_state.user_name}")
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            error_msg = str(e)
+            if "EMAIL_EXISTS" in error_msg:
+                st.error("This email is already registered. Please log in or use a different email.")
+            elif "INVALID_EMAIL" in error_msg:
+                st.error("Invalid email format. Please check your email.")
+            elif "WEAK_PASSWORD" in error_msg:
+                st.error("Password is too weak. Please use a stronger password.")
+            elif "TOO_MANY_ATTEMPTS" in error_msg:
+                st.error("Too many attempts. Please try again later.")
+            else:
+                st.error(f"Sign-up failed: {error_msg}")
 
     if login and email_valid and password_valid:
         try:
@@ -609,7 +610,6 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
-                        # Append follow-up as a new entry under the same conversation
                         st.session_state.chat_history.append((follow_up_input, ai_response))
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
                         st.rerun()

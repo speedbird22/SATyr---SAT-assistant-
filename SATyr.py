@@ -1,7 +1,7 @@
 import streamlit as st
 import http.client
 import json
-from typing import Optional, Dict, List, Tuple, List
+from typing import Optional, Dict, List, Tuple
 import time
 from dotenv import load_dotenv
 import os
@@ -321,10 +321,12 @@ def load_chat_history(email: str, token: str) -> List[Tuple[str, List[Tuple[str,
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
-        # Convert flat list to nested structure if needed
-        if chat_data and all(isinstance(item, tuple) and len(item) == 2 for item in chat_data):
-            return [(item[0], [item[1:]]) if len(item) == 2 else item for item in chat_data]
-        return chat_data if chat_data else []
+        if chat_data:
+            # Convert flat list to nested structure if needed
+            if all(isinstance(item, tuple) and len(item) == 2 for item in chat_data):
+                return [(item[0], [(item[0], item[1])] if len(item) == 2 else []) for item in chat_data]
+            return [(item[0], item[1]) for item in chat_data if isinstance(item, tuple) and len(item) == 2]
+        return []
     except Exception as e:
         st.warning(f"Failed to load chat history: {str(e)}.")
         return []
@@ -572,12 +574,12 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                 # Display initial message and response
                 st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                 st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {initial_msg}</div>', unsafe_allow_html=True)
-                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
-                if thread and thread[0][1]:  # Ensure there's an AI response
+                if thread and len(thread) > 0 and thread[0][1]:  # Ensure thread has at least one response
+                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                     st.markdown(f'<div class="ai-bubble">🤖 SATyr: {thread[0][1]}</div>', unsafe_allow_html=True)
 
                 # Display follow-ups
-                for user_msg, ai_msg in thread[1:]:  # Skip the initial response, show only follow-ups
+                for user_msg, ai_msg in thread[1:]:  # Show only follow-ups
                     st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                     st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
                     st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
@@ -588,7 +590,7 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in [(initial_msg, thread[0][1])] + thread])
+                    context = "\n".join([f"User: {msg[0]}\nSATyr: {msg[1]}" for msg in [(initial_msg, thread[0][1]) if thread and len(thread) > 0 and thread[0][1] else []] + thread])
                     ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")

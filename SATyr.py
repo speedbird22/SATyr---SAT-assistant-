@@ -399,13 +399,14 @@ if not st.session_state.logged_in:
                 st.error("Please enter a valid username.")
             else:
                 try:
+                    # Create user and get authentication details
                     user = auth.create_user_with_email_and_password(email, password)
+                    # Set session state directly from the creation response
                     st.session_state.logged_in = True
                     st.session_state.user_email = email
                     st.session_state.user_name = custom_username
-                    login_response = auth.sign_in_with_email_and_password(email, password)
-                    st.session_state.user_token = login_response['idToken']
-                    st.session_state.chat_history = load_chat_history(email, login_response['idToken'])
+                    st.session_state.user_token = user['idToken']  # Use the token from creation
+                    st.session_state.chat_history = load_chat_history(email, user['idToken'])
                     update_visit_counter()
                     st.success(f"Account created for {st.session_state.user_name}")
                     st.session_state.show_double_click_message = True
@@ -415,8 +416,12 @@ if not st.session_state.logged_in:
                     error_msg = str(e)
                     if "EMAIL_EXISTS" in error_msg:
                         st.error("This email is already registered. Please log in or use a different email.")
+                    elif "INVALID_EMAIL" in error_msg:
+                        st.error("Invalid email format.")
+                    elif "WEAK_PASSWORD" in error_msg:
+                        st.error("Password is too weak. Please use a stronger password.")
                     else:
-                        st.error(f"Authentication failed: {error_msg}")
+                        st.error(f"Failed to create account: {error_msg}")
 
     if login and email_valid and password_valid:
         try:

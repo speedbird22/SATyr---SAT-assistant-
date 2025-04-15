@@ -519,7 +519,7 @@ if not st.session_state.logged_in:
                         )
                         if delete_response.status_code != 200:
                             st.error(f"Failed to delete temporary user: {delete_response.text}")
-                            return  # Corrected indentation
+                            st.stop()  # Replace return with st.stop()
                     # Create final user with the same email and password
                     final_user = auth.create_user_with_email_and_password(
                         st.session_state.signup_email,

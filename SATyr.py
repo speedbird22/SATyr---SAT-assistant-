@@ -173,10 +173,6 @@ if "temp_user_id" not in st.session_state:
     st.session_state.temp_user_id = None
 if "temp_username" not in st.session_state:
     st.session_state.temp_username = None
-if "otp" not in st.session_state:
-    st.session_state.otp = None
-if "otp_displayed" not in st.session_state:
-    st.session_state.otp_displayed = False
 
 # --- Custom styling with chat bubbles and theme support ---
 st.markdown(
@@ -394,10 +390,6 @@ def clear_chat_history(email: str, token: str):
     except Exception as e:
         st.error(f"Failed to clear chat history: {str(e)}")
 
-# --- Generate OTP ---
-def generate_otp(length=6):
-    return ''.join(random.choices(string.digits, k=length))
-
 # --- Initial load of visit counter ---
 load_visit_counter()
 
@@ -468,16 +460,14 @@ if not st.session_state.logged_in:
                         st.session_state.temp_user_id = user['localId']
                         st.session_state.user_token = user['idToken']
                         st.session_state.temp_username = custom_username
-                        st.session_state.otp = generate_otp()
                         safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
                         db.child("pending_users").child(safe_email).set(
                             {
                                 "username": custom_username,
                                 "email": st.session_state.signup_email,
                                 "password": st.session_state.signup_password,
-                                "otp": st.session_state.otp,
-                                "created_at": time.time(),
-                                "temp_user_id": st.session_state.temp_user_id
+                                "temp_user_id": st.session_state.temp_user_id,
+                                "created_at": time.time()
                             },
                             token=st.session_state.user_token
                         )
@@ -491,9 +481,8 @@ if not st.session_state.logged_in:
                             }
                         )
                         if verification_response.status_code == 200:
-                            st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and enter the OTP below to complete sign-up.")
+                            st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and click 'Verify Email' to complete sign-up.")
                             st.session_state.pending_verification = True
-                            st.session_state.otp_displayed = True
                         else:
                             st.error(f"Failed to send verification email: {verification_response.text}")
                     except Exception as e:
@@ -508,85 +497,87 @@ if not st.session_state.logged_in:
                             st.error(f"Failed to initiate sign-up: {str(e)}")
 
     else:
-        st.info("Click the verification link in your email, then enter the OTP below to complete sign-up.")
-        if hasattr(st.session_state, 'otp_displayed') and st.session_state.otp_displayed:
-            st.markdown(f"**OTP (for demo):** {st.session_state.otp}")  # Demo OTP
-        otp_input = st.text_input("Enter OTP:", type="password", key="otp_input")
-        col1, col2 = st.columns(2)
-        with col1:
-            verify_button = st.button("Verify and Complete Sign-Up")
-        with col2:
-            cancel_button = st.button("Cancel Sign-Up")
-
-        if verify_button and otp_input:
-            safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+        st.info("Click the verification link in your email, then return here and click 'Verify Email' to complete sign-up.")
+        if st.button("Verify Email", key="verify_email"):
             try:
-                pending_data = db.child("pending_users").child(safe_email).get().val()
-                if pending_data and pending_data.get("otp") == otp_input:
-                    # Verify email (optional check with Firebase API if needed, but using OTP as proxy)
-                    # Create final user (replacing temp user)
-                    final_user = auth.create_user_with_email_and_password(
-                        st.session_state.signup_email,
-                        pending_data["password"]
-                    )
-                    st.session_state.user_token = final_user['idToken']
-                    st.session_state.logged_in = True
-                    st.session_state.user_email = st.session_state.signup_email
-                    st.session_state.user_name = pending_data["username"]
-                    st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
-                    update_visit_counter()
-                    # Move data to users
-                    db.child("users").child(safe_email).set(
-                        {"username": pending_data["username"]},
-                        token=st.session_state.user_token
-                    )
-                    # Delete temporary user
-                    requests.post(
-                        'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
-                        json={'idToken': st.session_state.user_token, 'localId': pending_data["temp_user_id"]}
-                    )
-                    # Clean up pending data
+                # Sign in with the temporary credentials to check verification status
+                user = auth.sign_in_with_email_and_password(
+                    st.session_state.signup_email,
+                    st.session_state.signup_password
+                )
+                st.session_state.user_token = user['idToken']
+                # Get user info to check if email is verified
+                user_info = requests.post(
+                    'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + os.getenv("API_KEY"),
+                    json={'idToken': st.session_state.user_token}
+                )
+                if user_info.status_code == 200:
+                    user_data = user_info.json()
+                    if user_data.get('users', [{}])[0].get('emailVerified', False):
+                        # Email is verified, create final user and log in
+                        final_user = auth.create_user_with_email_and_password(
+                            st.session_state.signup_email,
+                            st.session_state.signup_password
+                        )
+                        st.session_state.user_token = final_user['idToken']
+                        st.session_state.logged_in = True
+                        st.session_state.user_email = st.session_state.signup_email
+                        st.session_state.user_name = st.session_state.temp_username
+                        st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
+                        update_visit_counter()
+                        # Move data to users
+                        safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                        db.child("users").child(safe_email).set(
+                            {"username": st.session_state.temp_username},
+                            token=st.session_state.user_token
+                        )
+                        # Delete temporary user
+                        requests.post(
+                            'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
+                            json={'idToken': st.session_state.user_token, 'localId': st.session_state.temp_user_id}
+                        )
+                        # Clean up pending data
+                        db.child("pending_users").child(safe_email).remove()
+                        st.success(f"Account created and logged in as {st.session_state.user_name}")
+                        st.session_state.show_double_click_message = True
+                        st.session_state.signup_clicked = False
+                        st.session_state.signup_email = ""
+                        st.session_state.signup_password = ""
+                        st.session_state.pending_verification = False
+                        st.session_state.temp_user_id = None
+                        st.session_state.temp_username = None
+                        time.sleep(0.5)
+                        st.rerun()
+                    else:
+                        st.error("Email not verified yet. Please verify your email first.")
+                else:
+                    st.error(f"Failed to check verification status: {user_info.text}")
+            except Exception as e:
+                st.error(f"Error verifying email: {str(e)}")
+
+        col1, col2 = st.columns(2)
+        with col2:
+            if st.button("Cancel Sign-Up", key="cancel_signup"):
+                try:
+                    safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                    pending_data = db.child("pending_users").child(safe_email).get().val()
+                    if pending_data and pending_data.get("temp_user_id"):
+                        requests.post(
+                            'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
+                            json={'idToken': st.session_state.user_token, 'localId': pending_data["temp_user_id"]}
+                        )
                     db.child("pending_users").child(safe_email).remove()
-                    st.success(f"Account created for {st.session_state.user_name}")
-                    st.session_state.show_double_click_message = True
+                    st.info("Sign-up cancelled. Pending data and temporary user removed.")
                     st.session_state.signup_clicked = False
                     st.session_state.signup_email = ""
                     st.session_state.signup_password = ""
                     st.session_state.pending_verification = False
                     st.session_state.temp_user_id = None
                     st.session_state.temp_username = None
-                    st.session_state.otp = None
-                    st.session_state.otp_displayed = False
                     time.sleep(0.5)
                     st.rerun()
-                else:
-                    st.error("Invalid OTP or verification not completed. Please check your email and try again.")
-            except Exception as e:
-                st.error(f"Error completing sign-up: {str(e)}")
-
-        if cancel_button:
-            try:
-                safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
-                pending_data = db.child("pending_users").child(safe_email).get().val()
-                if pending_data and pending_data.get("temp_user_id"):
-                    requests.post(
-                        'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
-                        json={'idToken': st.session_state.user_token, 'localId': pending_data["temp_user_id"]}
-                    )
-                db.child("pending_users").child(safe_email).remove()
-                st.info("Sign-up cancelled. Pending data and temporary user removed.")
-                st.session_state.signup_clicked = False
-                st.session_state.signup_email = ""
-                st.session_state.signup_password = ""
-                st.session_state.pending_verification = False
-                st.session_state.temp_user_id = None
-                st.session_state.temp_username = None
-                st.session_state.otp = None
-                st.session_state.otp_displayed = False
-                time.sleep(0.5)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error cancelling sign-up: {str(e)}")
+                except Exception as e:
+                    st.error(f"Error cancelling sign-up: {str(e)}")
 
     # Forgot Password
     with st.expander("Forgot Password?"):
@@ -687,7 +678,6 @@ if st.session_state.logged_in:
             st.session_state.pending_verification = False
             st.session_state.temp_user_id = None
             st.session_state.temp_username = None
-            st.session_state.otp = None
             st.rerun()
 
 # --- Settings Panel ---
@@ -743,7 +733,6 @@ if st.session_state.logged_in and st.session_state.show_settings:
                 st.session_state.pending_verification = False
                 st.session_state.temp_user_id = None
                 st.session_state.temp_username = None
-                st.session_state.otp = None
                 st.rerun()
                 st.success("Account deleted successfully. You can now sign up as a new user.")
             else:

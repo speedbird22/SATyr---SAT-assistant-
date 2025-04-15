@@ -460,7 +460,7 @@ if not st.session_state.logged_in:
                     st.error("Please enter a valid username.")
                 else:
                     try:
-                        # Create a temporary user to send verification email
+                        # Create a temporary user
                         user = auth.create_user_with_email_and_password(
                             st.session_state.signup_email,
                             st.session_state.signup_password
@@ -481,11 +481,21 @@ if not st.session_state.logged_in:
                             },
                             token=st.session_state.user_token
                         )
-                        # Send verification email without id_token argument
-                        auth.send_email_verification(st.session_state.signup_email)
-                        st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and enter the OTP below to complete sign-up.")
-                        st.session_state.pending_verification = True
-                        st.session_state.otp_displayed = True
+                        # Use Identity Toolkit API directly to send verification email
+                        verification_response = requests.post(
+                            'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + os.getenv("API_KEY"),
+                            json={
+                                'requestType': 'VERIFY_EMAIL',
+                                'idToken': st.session_state.user_token,
+                                'email': st.session_state.signup_email
+                            }
+                        )
+                        if verification_response.status_code == 200:
+                            st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and enter the OTP below to complete sign-up.")
+                            st.session_state.pending_verification = True
+                            st.session_state.otp_displayed = True
+                        else:
+                            st.error(f"Failed to send verification email: {verification_response.text}")
                     except Exception as e:
                         error_msg = str(e)
                         if "EMAIL_EXISTS" in error_msg:

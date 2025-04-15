@@ -6,8 +6,6 @@ import time
 from dotenv import load_dotenv
 import os
 import pyrebase
-import random
-import string
 import requests
 from colors import COLORS, LIGHT_MODE_COLORS  # Import both dictionaries
 
@@ -481,7 +479,7 @@ if not st.session_state.logged_in:
                             }
                         )
                         if verification_response.status_code == 200:
-                            st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and click 'Verify Email' to complete sign-up.")
+                            st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here to complete sign-up.")
                             st.session_state.pending_verification = True
                         else:
                             st.error(f"Failed to send verification email: {verification_response.text}")
@@ -497,63 +495,60 @@ if not st.session_state.logged_in:
                             st.error(f"Failed to initiate sign-up: {str(e)}")
 
     else:
-        st.info("Click the verification link in your email, then return here and click 'Verify Email' to complete sign-up.")
-        if st.button("Verify Email", key="verify_email"):
-            try:
-                # Sign in with the temporary credentials to check verification status
-                user = auth.sign_in_with_email_and_password(
-                    st.session_state.signup_email,
-                    st.session_state.signup_password
-                )
-                st.session_state.user_token = user['idToken']
-                # Get user info to check if email is verified
-                user_info = requests.post(
-                    'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + os.getenv("API_KEY"),
-                    json={'idToken': st.session_state.user_token}
-                )
-                if user_info.status_code == 200:
-                    user_data = user_info.json()
-                    if user_data.get('users', [{}])[0].get('emailVerified', False):
-                        # Email is verified, create final user and log in
-                        final_user = auth.create_user_with_email_and_password(
-                            st.session_state.signup_email,
-                            st.session_state.signup_password
-                        )
-                        st.session_state.user_token = final_user['idToken']
-                        st.session_state.logged_in = True
-                        st.session_state.user_email = st.session_state.signup_email
-                        st.session_state.user_name = st.session_state.temp_username
-                        st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
-                        update_visit_counter()
-                        # Move data to users
-                        safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
-                        db.child("users").child(safe_email).set(
-                            {"username": st.session_state.temp_username},
-                            token=st.session_state.user_token
-                        )
-                        # Delete temporary user
-                        requests.post(
+        try:
+            # Automatically check verification status when user returns
+            user = auth.sign_in_with_email_and_password(
+                st.session_state.signup_email,
+                st.session_state.signup_password
+            )
+            st.session_state.user_token = user['idToken']
+            user_info = requests.post(
+                'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + os.getenv("API_KEY"),
+                json={'idToken': st.session_state.user_token}
+            )
+            if user_info.status_code == 200:
+                user_data = user_info.json()
+                if user_data.get('users', [{}])[0].get('emailVerified', False):
+                    # Email is verified, delete the temporary user
+                    temp_user_info = user_data.get('users', [{}])[0]
+                    temp_local_id = temp_user_info.get('localId')
+                    if temp_local_id:
+                        delete_response = requests.post(
                             'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
-                            json={'idToken': st.session_state.user_token, 'localId': st.session_state.temp_user_id}
+                            json={'idToken': st.session_state.user_token, 'localId': temp_local_id}
                         )
-                        # Clean up pending data
-                        db.child("pending_users").child(safe_email).remove()
-                        st.success(f"Account created and logged in as {st.session_state.user_name}")
-                        st.session_state.show_double_click_message = True
-                        st.session_state.signup_clicked = False
-                        st.session_state.signup_email = ""
-                        st.session_state.signup_password = ""
-                        st.session_state.pending_verification = False
-                        st.session_state.temp_user_id = None
-                        st.session_state.temp_username = None
-                        time.sleep(0.5)
-                        st.rerun()
-                    else:
-                        st.error("Email not verified yet. Please verify your email first.")
+                        if delete_response.status_code != 200:
+                            st.error(f"Failed to delete temporary user: {delete_response.text}")
+                            return
+                    # Create final user with the same email and password
+                    final_user = auth.create_user_with_email_and_password(
+                        st.session_state.signup_email,
+                        st.session_state.signup_password
+                    )
+                    st.session_state.user_token = final_user['idToken']
+                    # Move data to users
+                    safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                    db.child("users").child(safe_email).set(
+                        {"username": st.session_state.temp_username},
+                        token=st.session_state.user_token
+                    )
+                    # Clean up pending data
+                    db.child("pending_users").child(safe_email).remove()
+                    st.success("Verification successful! Please log in with your new account.")
+                    st.session_state.signup_clicked = False
+                    st.session_state.signup_email = ""
+                    st.session_state.signup_password = ""
+                    st.session_state.pending_verification = False
+                    st.session_state.temp_user_id = None
+                    st.session_state.temp_username = None
+                    time.sleep(2)
+                    st.rerun()
                 else:
-                    st.error(f"Failed to check verification status: {user_info.text}")
-            except Exception as e:
-                st.error(f"Error verifying email: {str(e)}")
+                    st.info("Please click the verification link in your email and return here to complete sign-up.")
+            else:
+                st.error(f"Failed to check verification status: {user_info.text}")
+        except Exception as e:
+            st.error(f"Error checking verification: {str(e)}")
 
         col1, col2 = st.columns(2)
         with col2:

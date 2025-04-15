@@ -8,6 +8,7 @@ import os
 import pyrebase
 import random
 import string
+import requests
 from colors import COLORS, LIGHT_MODE_COLORS  # Import both dictionaries
 
 # Set page config
@@ -168,6 +169,8 @@ if "signup_password" not in st.session_state:
     st.session_state.signup_password = ""
 if "pending_verification" not in st.session_state:
     st.session_state.pending_verification = False
+if "temp_user_id" not in st.session_state:
+    st.session_state.temp_user_id = None
 if "temp_username" not in st.session_state:
     st.session_state.temp_username = None
 if "otp" not in st.session_state:
@@ -457,7 +460,13 @@ if not st.session_state.logged_in:
                     st.error("Please enter a valid username.")
                 else:
                     try:
-                        # Store pending signup data without creating the user yet
+                        # Create a temporary user to send verification email
+                        user = auth.create_user_with_email_and_password(
+                            st.session_state.signup_email,
+                            st.session_state.signup_password
+                        )
+                        st.session_state.temp_user_id = user['localId']
+                        st.session_state.user_token = user['idToken']
                         st.session_state.temp_username = custom_username
                         st.session_state.otp = generate_otp()
                         safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
@@ -467,11 +476,13 @@ if not st.session_state.logged_in:
                                 "email": st.session_state.signup_email,
                                 "password": st.session_state.signup_password,
                                 "otp": st.session_state.otp,
-                                "created_at": time.time()
-                            }
+                                "created_at": time.time(),
+                                "temp_user_id": st.session_state.temp_user_id
+                            },
+                            token=st.session_state.user_token
                         )
-                        # Send verification email
-                        auth.send_email_verification(st.session_state.signup_email)
+                        # Send verification email with the user's token
+                        auth.send_email_verification(st.session_state.signup_email, id_token=st.session_state.user_token)
                         st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and enter the OTP below to complete sign-up.")
                         st.session_state.pending_verification = True
                         st.session_state.otp_displayed = True
@@ -481,6 +492,8 @@ if not st.session_state.logged_in:
                             st.error("This email is already registered. Please log in or use a different email.")
                         elif "INVALID_EMAIL" in error_msg:
                             st.error("Invalid email format.")
+                        elif "WEAK_PASSWORD" in error_msg:
+                            st.error("Password is too weak.")
                         else:
                             st.error(f"Failed to initiate sign-up: {str(e)}")
 
@@ -500,21 +513,27 @@ if not st.session_state.logged_in:
             try:
                 pending_data = db.child("pending_users").child(safe_email).get().val()
                 if pending_data and pending_data.get("otp") == otp_input:
-                    # Create user only after verification
-                    user = auth.create_user_with_email_and_password(
+                    # Verify email (optional check with Firebase API if needed, but using OTP as proxy)
+                    # Create final user (replacing temp user)
+                    final_user = auth.create_user_with_email_and_password(
                         st.session_state.signup_email,
                         pending_data["password"]
                     )
-                    st.session_state.user_token = user['idToken']
+                    st.session_state.user_token = final_user['idToken']
                     st.session_state.logged_in = True
                     st.session_state.user_email = st.session_state.signup_email
                     st.session_state.user_name = pending_data["username"]
-                    st.session_state.chat_history = load_chat_history(st.session_state.signup_email, st.session_state.user_token)
+                    st.session_state.chat_history = load_chat_history(st.session_state.user_email, st.session_state.user_token)
                     update_visit_counter()
                     # Move data to users
                     db.child("users").child(safe_email).set(
                         {"username": pending_data["username"]},
                         token=st.session_state.user_token
+                    )
+                    # Delete temporary user
+                    requests.post(
+                        'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
+                        json={'idToken': st.session_state.user_token, 'localId': pending_data["temp_user_id"]}
                     )
                     # Clean up pending data
                     db.child("pending_users").child(safe_email).remove()
@@ -524,6 +543,7 @@ if not st.session_state.logged_in:
                     st.session_state.signup_email = ""
                     st.session_state.signup_password = ""
                     st.session_state.pending_verification = False
+                    st.session_state.temp_user_id = None
                     st.session_state.temp_username = None
                     st.session_state.otp = None
                     st.session_state.otp_displayed = False
@@ -535,15 +555,21 @@ if not st.session_state.logged_in:
                 st.error(f"Error completing sign-up: {str(e)}")
 
         if cancel_button:
-            # Simply remove pending data
             try:
                 safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                pending_data = db.child("pending_users").child(safe_email).get().val()
+                if pending_data and pending_data.get("temp_user_id"):
+                    requests.post(
+                        'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
+                        json={'idToken': st.session_state.user_token, 'localId': pending_data["temp_user_id"]}
+                    )
                 db.child("pending_users").child(safe_email).remove()
-                st.info("Sign-up cancelled. Pending data removed.")
+                st.info("Sign-up cancelled. Pending data and temporary user removed.")
                 st.session_state.signup_clicked = False
                 st.session_state.signup_email = ""
                 st.session_state.signup_password = ""
                 st.session_state.pending_verification = False
+                st.session_state.temp_user_id = None
                 st.session_state.temp_username = None
                 st.session_state.otp = None
                 st.session_state.otp_displayed = False
@@ -649,6 +675,7 @@ if st.session_state.logged_in:
             st.session_state.show_settings = False
             st.session_state.signup_clicked = False
             st.session_state.pending_verification = False
+            st.session_state.temp_user_id = None
             st.session_state.temp_username = None
             st.session_state.otp = None
             st.rerun()

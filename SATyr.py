@@ -320,6 +320,16 @@ def load_visit_counter():
     except Exception as e:
         st.warning(f"Failed to load visit counter: {str(e)}")
 
+# --- Fetch username ---
+def fetch_username(email: str, token: str) -> str:
+    try:
+        safe_email = email.replace(".", "_").replace("@", "_")
+        username = db.child("users").child(safe_email).child("username").get(token=token).val()
+        return username if username else None
+    except Exception as e:
+        st.warning(f"Failed to fetch username: {str(e)}")
+        return None
+
 # --- Load chat history ---
 def load_chat_history(email: str, token: str) -> List[Dict]:
     if not st.session_state.logged_in:
@@ -415,8 +425,10 @@ if not st.session_state.logged_in:
             user = auth.sign_in_with_email_and_password(email, password)
             st.session_state.logged_in = True
             st.session_state.user_email = email
-            st.session_state.user_name = email.split("@")[0]  # Default to email prefix for login
             st.session_state.user_token = user['idToken']
+            # Fetch username from Firebase
+            username = fetch_username(email, user['idToken'])
+            st.session_state.user_name = username if username else email.split("@")[0]  # Fallback to email prefix
             st.session_state.chat_history = load_chat_history(email, user['idToken'])
             update_visit_counter()
             st.success(f"Logged in as {st.session_state.user_name}")

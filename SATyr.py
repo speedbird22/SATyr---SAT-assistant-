@@ -174,6 +174,8 @@ if "temp_username" not in st.session_state:
     st.session_state.temp_username = None
 if "otp" not in st.session_state:
     st.session_state.otp = None
+if "otp_displayed" not in st.session_state:
+    st.session_state.otp_displayed = False
 
 # --- Custom styling with chat bubbles and theme support ---
 st.markdown(
@@ -465,6 +467,7 @@ if not st.session_state.logged_in:
                         # Store temp user ID and username
                         st.session_state.temp_user_id = user['localId']
                         st.session_state.temp_username = custom_username
+                        st.session_state.user_token = user['idToken']
                         st.session_state.pending_verification = True
                         # Generate and store OTP
                         st.session_state.otp = generate_otp()
@@ -478,10 +481,10 @@ if not st.session_state.logged_in:
                             },
                             token=user['idToken']
                         )
-                        # Simulate sending OTP email (for demo, display OTP)
-                        # In production, use Firebase Cloud Functions with SendGrid
-                        st.info(f"OTP sent to {st.session_state.signup_email}. Check your inbox.")
-                        st.markdown(f"OTP (for demo): {st.session_state.otp}")
+                        # Send Firebase verification email
+                        auth.send_email_verification(st.session_state.signup_email)
+                        st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Check your inbox and spam folder for the link, then enter the OTP provided below.")
+                        st.session_state.otp_displayed = True  # Flag to show OTP
                     except Exception as e:
                         error_msg = str(e)
                         if "EMAIL_EXISTS" in error_msg:
@@ -494,7 +497,9 @@ if not st.session_state.logged_in:
                             st.error(f"Failed to create account: {error_msg}")
 
     else:
-        st.info("Please enter the OTP sent to your email.")
+        st.info("Please enter the OTP from the verification email or the one displayed below (for demo).")
+        if hasattr(st.session_state, 'otp_displayed') and st.session_state.otp_displayed:
+            st.markdown(f"**OTP (for demo):** {st.session_state.otp}")  # Demo OTP
         otp_input = st.text_input("Enter OTP:", type="password", key="otp_input")
         col1, col2 = st.columns(2)
         with col1:
@@ -537,6 +542,7 @@ if not st.session_state.logged_in:
                     st.session_state.temp_user_id = None
                     st.session_state.temp_username = None
                     st.session_state.otp = None
+                    st.session_state.otp_displayed = False
                     time.sleep(0.5)
                     st.rerun()
                 else:
@@ -545,12 +551,20 @@ if not st.session_state.logged_in:
                 st.error(f"Error verifying OTP: {str(e)}")
 
         if cancel_button:
-            # Delete user account and pending data
+            # Delete pending data and user
             try:
                 safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
                 db.child("pending_users").child(safe_email).remove(st.session_state.user_token)
-                # Note: pyrebase doesn't support user deletion directly; use Firebase Admin SDK in production
-                st.info("Sign-up cancelled. Account deleted.")
+                import requests
+                # Call Cloud Function to delete user
+                response = requests.post(
+                    'https://us-central1-<your-project-id>.cloudfunctions.net/deleteUser',
+                    json={'data': {'uid': st.session_state.temp_user_id}}
+                )
+                if response.status_code == 200 and response.json().get('result', {}).get('success'):
+                    st.info("Sign-up cancelled. Account deleted.")
+                else:
+                    st.error("Failed to delete account. Please try again.")
                 st.session_state.signup_clicked = False
                 st.session_state.signup_email = ""
                 st.session_state.signup_password = ""
@@ -558,6 +572,7 @@ if not st.session_state.logged_in:
                 st.session_state.temp_user_id = None
                 st.session_state.temp_username = None
                 st.session_state.otp = None
+                st.session_state.user_token = None
                 time.sleep(0.5)
                 st.rerun()
             except Exception as e:

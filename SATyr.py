@@ -122,7 +122,7 @@ class SATyrAI:
             response = self.conn.getresponse()
             response_data = response.read().decode()
 
-            if response.status == 200:
+            if response.status_code == 200:
                 try:
                     data = json.loads(response_data)
                     self.session_id = data.get("SessionId", self.session_id)
@@ -130,7 +130,7 @@ class SATyrAI:
                     return self.context
                 except json.JSONDecodeError:
                     return f"[Error] Invalid JSON response: {response_data}"
-            return f"[Error] API request failed: {response.status} - {response.reason}"
+            return f"[Error] API request failed: {response.status_code} - {response.reason}"
 
         except Exception as e:
             return f"[Error] Network or API error: {str(e)}"
@@ -707,6 +707,39 @@ if st.session_state.logged_in and st.session_state.show_settings:
         clear_chat_history(st.session_state.user_email, st.session_state.user_token)
         st.session_state.selected_conversation_index = None
         st.rerun()
+
+    st.subheader("Delete Account")
+    st.warning("This action will permanently delete your account and all associated data. This cannot be undone.")
+    if st.button("Delete My Account"):
+        try:
+            safe_email = st.session_state.user_email.replace(".", "_").replace("@", "_")
+            # Delete user data from Realtime Database
+            db.child("users").child(safe_email).remove(token=st.session_state.user_token)
+            # Delete user from Authentication using Identity Toolkit API
+            response = requests.post(
+                'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
+                json={'idToken': st.session_state.user_token}
+            )
+            if response.status_code == 200:
+                # Log out and reset session
+                st.session_state.logged_in = False
+                st.session_state.user_token = None
+                st.session_state.user_email = None
+                st.session_state.user_name = None
+                st.session_state.chat_history = []
+                st.session_state.selected_conversation_index = None
+                st.session_state.show_settings = False
+                st.session_state.signup_clicked = False
+                st.session_state.pending_verification = False
+                st.session_state.temp_user_id = None
+                st.session_state.temp_username = None
+                st.session_state.otp = None
+                st.rerun()
+                st.success("Account deleted successfully. You can now sign up as a new user.")
+            else:
+                st.error(f"Failed to delete account: {response.text}")
+        except Exception as e:
+            st.error(f"Error deleting account: {str(e)}")
 
     st.subheader("Theme")
     light_mode = st.checkbox("Enable Light Mode", value=st.session_state.light_mode)

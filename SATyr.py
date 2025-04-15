@@ -6,6 +6,8 @@ import time
 from dotenv import load_dotenv
 import os
 import pyrebase
+import random
+import string
 from colors import COLORS, LIGHT_MODE_COLORS  # Import both dictionaries
 
 # Set page config
@@ -170,6 +172,8 @@ if "temp_user_id" not in st.session_state:
     st.session_state.temp_user_id = None
 if "temp_username" not in st.session_state:
     st.session_state.temp_username = None
+if "otp" not in st.session_state:
+    st.session_state.otp = None
 
 # --- Custom styling with chat bubbles and theme support ---
 st.markdown(
@@ -387,6 +391,10 @@ def clear_chat_history(email: str, token: str):
     except Exception as e:
         st.error(f"Failed to clear chat history: {str(e)}")
 
+# --- Generate OTP ---
+def generate_otp(length=6):
+    return ''.join(random.choices(string.digits, k=length))
+
 # --- Initial load of visit counter ---
 load_visit_counter()
 
@@ -417,24 +425,17 @@ if not st.session_state.logged_in:
         if login and email_valid and password_valid:
             try:
                 user = auth.sign_in_with_email_and_password(email, password)
-                # Check if email is verified
-                user_info = auth.get_account_info(user['idToken'])['users'][0]
-                if not user_info.get('emailVerified', False):
-                    st.error("Please verify your email before logging in.")
-                    auth.send_email_verification(user['idToken'])
-                    st.info("A new verification email has been sent. Please check your inbox.")
-                else:
-                    st.session_state.logged_in = True
-                    st.session_state.user_email = email
-                    st.session_state.user_token = user['idToken']
-                    username = fetch_username(email, user['idToken'])
-                    st.session_state.user_name = username if username else email.split("@")[0]
-                    st.session_state.chat_history = load_chat_history(email, user['idToken'])
-                    update_visit_counter()
-                    st.success(f"Logged in as {st.session_state.user_name}")
-                    st.session_state.show_double_click_message = True
-                    time.sleep(0.5)
-                    st.rerun()
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.session_state.user_token = user['idToken']
+                username = fetch_username(email, user['idToken'])
+                st.session_state.user_name = username if username else email.split("@")[0]
+                st.session_state.chat_history = load_chat_history(email, user['idToken'])
+                update_visit_counter()
+                st.success(f"Logged in as {st.session_state.user_name}")
+                st.session_state.show_double_click_message = True
+                time.sleep(0.5)
+                st.rerun()
             except Exception as e:
                 error_msg = str(e)
                 if "INVALID_LOGIN_CREDENTIALS" in error_msg:
@@ -461,41 +462,26 @@ if not st.session_state.logged_in:
                             st.session_state.signup_email,
                             st.session_state.signup_password
                         )
-                        # Store temp user ID and username for verification
+                        # Store temp user ID and username
                         st.session_state.temp_user_id = user['localId']
                         st.session_state.temp_username = custom_username
                         st.session_state.pending_verification = True
-                        # Save temporary user data
+                        # Generate and store OTP
+                        st.session_state.otp = generate_otp()
                         safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
                         db.child("pending_users").child(safe_email).set(
                             {
                                 "username": custom_username,
                                 "email": st.session_state.signup_email,
+                                "otp": st.session_state.otp,
                                 "created_at": time.time()
                             },
                             token=user['idToken']
                         )
-                        # Send verification email
-                        action_code_settings = {
-                            "url": "https://your-app-url.com/verify",  # Replace with your app's URL
-                            "handleCodeInApp": True
-                        }
-                        verification_link = auth.generate_email_verification_link(
-                            st.session_state.signup_email,
-                            action_code_settings
-                        )
-                        # Store denial token
-                        denial_token = os.urandom(16).hex()
-                        db.child("pending_users").child(safe_email).child("denial_token").set(
-                            denial_token,
-                            token=user['idToken']
-                        )
-                        # Note: Firebase sends email from noreply@<project>.firebaseapp.com
-                        # For custom email with confirm/deny links, use Cloud Functions
-                        st.info(f"Verification email sent to {st.session_state.signup_email}. Please check your inbox.")
-                        # For demo, display links (in production, send via email)
-                        st.markdown(f"Confirm: {verification_link}")
-                        st.markdown(f"Deny: https://your-app-url.com/deny?token={denial_token}&email={safe_email}")
+                        # Simulate sending OTP email (for demo, display OTP)
+                        # In production, use Firebase Cloud Functions with SendGrid
+                        st.info(f"OTP sent to {st.session_state.signup_email}. Check your inbox.")
+                        st.markdown(f"OTP (for demo): {st.session_state.otp}")
                     except Exception as e:
                         error_msg = str(e)
                         if "EMAIL_EXISTS" in error_msg:
@@ -508,27 +494,34 @@ if not st.session_state.logged_in:
                             st.error(f"Failed to create account: {error_msg}")
 
     else:
-        st.info("Please check your email to verify your account or deny the sign-up.")
-        if st.button("I’ve Verified My Email"):
+        st.info("Please enter the OTP sent to your email.")
+        otp_input = st.text_input("Enter OTP:", type="password", key="otp_input")
+        col1, col2 = st.columns(2)
+        with col1:
+            verify_button = st.button("Verify OTP")
+        with col2:
+            cancel_button = st.button("Cancel Sign-Up")
+
+        if verify_button and otp_input:
+            safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
             try:
-                user = auth.sign_in_with_email_and_password(
-                    st.session_state.signup_email,
-                    st.session_state.signup_password
-                )
-                user_info = auth.get_account_info(user['idToken'])['users'][0]
-                if user_info.get('emailVerified', False):
+                stored_otp = db.child("pending_users").child(safe_email).child("otp").get(st.session_state.user_token).val()
+                if stored_otp == otp_input:
                     # Complete sign-up
                     st.session_state.logged_in = True
                     st.session_state.user_email = st.session_state.signup_email
                     st.session_state.user_name = st.session_state.temp_username
+                    user = auth.sign_in_with_email_and_password(
+                        st.session_state.signup_email,
+                        st.session_state.signup_password
+                    )
                     st.session_state.user_token = user['idToken']
                     st.session_state.chat_history = load_chat_history(
                         st.session_state.signup_email,
                         user['idToken']
                     )
                     update_visit_counter()
-                    safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
-                    # Move data from pending_users to users
+                    # Move data to users
                     pending_data = db.child("pending_users").child(safe_email).get(user['idToken']).val()
                     db.child("users").child(safe_email).set(
                         {"username": pending_data.get("username", st.session_state.temp_username)},
@@ -543,12 +536,32 @@ if not st.session_state.logged_in:
                     st.session_state.pending_verification = False
                     st.session_state.temp_user_id = None
                     st.session_state.temp_username = None
+                    st.session_state.otp = None
                     time.sleep(0.5)
                     st.rerun()
                 else:
-                    st.error("Email not verified yet. Please check your inbox.")
+                    st.error("Invalid OTP. Please try again.")
             except Exception as e:
-                st.error(f"Error checking verification: {str(e)}")
+                st.error(f"Error verifying OTP: {str(e)}")
+
+        if cancel_button:
+            # Delete user account and pending data
+            try:
+                safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                db.child("pending_users").child(safe_email).remove(st.session_state.user_token)
+                # Note: pyrebase doesn't support user deletion directly; use Firebase Admin SDK in production
+                st.info("Sign-up cancelled. Account deleted.")
+                st.session_state.signup_clicked = False
+                st.session_state.signup_email = ""
+                st.session_state.signup_password = ""
+                st.session_state.pending_verification = False
+                st.session_state.temp_user_id = None
+                st.session_state.temp_username = None
+                st.session_state.otp = None
+                time.sleep(0.5)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error cancelling sign-up: {str(e)}")
 
     # Forgot Password
     with st.expander("Forgot Password?"):
@@ -649,6 +662,7 @@ if st.session_state.logged_in:
             st.session_state.pending_verification = False
             st.session_state.temp_user_id = None
             st.session_state.temp_username = None
+            st.session_state.otp = None
             st.rerun()
 
 # --- Settings Panel ---

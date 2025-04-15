@@ -479,7 +479,7 @@ if not st.session_state.logged_in:
                             }
                         )
                         if verification_response.status_code == 200:
-                            st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here to complete sign-up.")
+                            st.info(f"Verification email sent! Click the link in your inbox, then return here to complete sign-up.")
                             st.session_state.pending_verification = True
                         else:
                             st.error(f"Failed to send verification email: {verification_response.text}")
@@ -534,7 +534,7 @@ if not st.session_state.logged_in:
                     )
                     # Clean up pending data
                     db.child("pending_users").child(safe_email).remove()
-                    st.success("Verification successful! Please log in with your new account.")
+                    st.success("Account creation successful! Enjoy mate :) ")
                     st.session_state.signup_clicked = False
                     st.session_state.signup_email = ""
                     st.session_state.signup_password = ""

@@ -481,8 +481,8 @@ if not st.session_state.logged_in:
                             },
                             token=st.session_state.user_token
                         )
-                        # Send verification email with the user's token
-                        auth.send_email_verification(st.session_state.signup_email, id_token=st.session_state.user_token)
+                        # Send verification email without id_token argument
+                        auth.send_email_verification(st.session_state.signup_email)
                         st.info(f"Verification email sent from noreply@satyr-fe4f3.firebaseapp.com. Click the link in your inbox, then return here and enter the OTP below to complete sign-up.")
                         st.session_state.pending_verification = True
                         st.session_state.otp_displayed = True

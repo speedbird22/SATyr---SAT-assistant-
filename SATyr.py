@@ -91,11 +91,11 @@ class SATyrAI:
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
-            "Text": text,  # User's prompt
-            "Context": context if context else "",  # Entire conversation history as context
+            "Text": text,
+            "Context": context if context else "",
             "DomainName": self.domain,
             "UserName": self.user_name or "Guest",
-            "SourceName": "API",  # Added as specified
+            "SourceName": "API",
             "Is_stack": False,
             "Is_draft": False
         }
@@ -145,7 +145,7 @@ if "logged_in" not in st.session_state:
 if "chatbot" not in st.session_state:
     st.session_state.chatbot = SATyrAI()
 if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # List of threads, each thread: {"initial": (user_msg, ai_msg), "follow_ups": [(user_msg, ai_msg), ...]}
+    st.session_state.chat_history = []
 if "user_name" not in st.session_state:
     st.session_state.user_name = None
 if "selected_conversation_index" not in st.session_state:
@@ -164,6 +164,12 @@ if "signup_email" not in st.session_state:
     st.session_state.signup_email = ""
 if "signup_password" not in st.session_state:
     st.session_state.signup_password = ""
+if "pending_verification" not in st.session_state:
+    st.session_state.pending_verification = False
+if "temp_user_id" not in st.session_state:
+    st.session_state.temp_user_id = None
+if "temp_username" not in st.session_state:
+    st.session_state.temp_username = None
 
 # --- Custom styling with chat bubbles and theme support ---
 st.markdown(
@@ -339,15 +345,11 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
         if not chat_data:
             return []
-        # Initialize empty list for valid threads
         valid_threads = []
-        # Handle data as a list
         if isinstance(chat_data, list):
             for item in chat_data:
-                # Legacy format: [user_msg, ai_msg] or (user_msg, ai_msg)
                 if isinstance(item, (list, tuple)) and len(item) == 2 and all(isinstance(s, str) for s in item):
                     valid_threads.append({"initial": tuple(item), "follow_ups": []})
-                # New format: dict with 'initial' key
                 elif isinstance(item, dict) and "initial" in item:
                     initial = item.get("initial")
                     if isinstance(initial, (list, tuple)) and len(initial) == 2 and all(isinstance(s, str) for s in initial):
@@ -358,7 +360,6 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
                                 if isinstance(f, (list, tuple)) and len(f) == 2 and all(isinstance(s, str) for s in f)
                             ]
                         })
-                # Ignore any other formats
         return valid_threads
     except Exception as e:
         st.warning(f"Failed to load chat history: {str(e)}")
@@ -394,114 +395,160 @@ if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
     st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
 
-    # Initialize session state for signup
-    if "signup_clicked" not in st.session_state:
-        st.session_state.signup_clicked = False
-    if "signup_email" not in st.session_state:
-        st.session_state.signup_email = ""
-    if "signup_password" not in st.session_state:
-        st.session_state.signup_password = ""
+    if not st.session_state.pending_verification:
+        email = st.text_input("📧 Email", key="email_input")
+        password = st.text_input("🔒 Password", type="password", key="password_input")
 
-    email = st.text_input("📧 Email", key="email_input")
-    password = st.text_input("🔒 Password", type="password", key="password_input")
+        email_valid = "@" in email if email else False
+        if email and not email_valid:
+            st.error("Please enter a valid email address containing '@'.")
 
-    email_valid = "@" in email if email else False
-    if email and not email_valid:
-        st.error("Please enter a valid email address containing '@'.")
+        password_valid = len(password) >= 6 if password else False
+        if password and not password_valid:
+            st.error("Password must be at least 6 characters long.")
 
-    password_valid = len(password) >= 6 if password else False
-    if password and not password_valid:
-        st.error("Password must be at least 6 characters long.")
+        col1, col2 = st.columns(2)
+        with col1:
+            login = st.button("🔓 Login")
+        with col2:
+            signup = st.button("📝 Sign Up")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        login = st.button("🔓 Login")
-    with col2:
-        signup = st.button("📝 Sign Up")
+        # Handle login
+        if login and email_valid and password_valid:
+            try:
+                user = auth.sign_in_with_email_and_password(email, password)
+                # Check if email is verified
+                user_info = auth.get_account_info(user['idToken'])['users'][0]
+                if not user_info.get('emailVerified', False):
+                    st.error("Please verify your email before logging in.")
+                    auth.send_email_verification(user['idToken'])
+                    st.info("A new verification email has been sent. Please check your inbox.")
+                else:
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    st.session_state.user_token = user['idToken']
+                    username = fetch_username(email, user['idToken'])
+                    st.session_state.user_name = username if username else email.split("@")[0]
+                    st.session_state.chat_history = load_chat_history(email, user['idToken'])
+                    update_visit_counter()
+                    st.success(f"Logged in as {st.session_state.user_name}")
+                    st.session_state.show_double_click_message = True
+                    time.sleep(0.5)
+                    st.rerun()
+            except Exception as e:
+                error_msg = str(e)
+                if "INVALID_LOGIN_CREDENTIALS" in error_msg:
+                    st.error("Incorrect email or password.")
+                else:
+                    st.error(f"Authentication failed: {error_msg}")
 
-    # Handle login
-    if login and email_valid and password_valid:
-        try:
-            user = auth.sign_in_with_email_and_password(email, password)
-            st.session_state.logged_in = True
-            st.session_state.user_email = email
-            st.session_state.user_token = user['idToken']
-            # Fetch username from Firebase
-            username = fetch_username(email, user['idToken'])
-            st.session_state.user_name = username if username else email.split("@")[0]  # Fallback to email prefix
-            st.session_state.chat_history = load_chat_history(email, user['idToken'])
-            update_visit_counter()
-            st.success(f"Logged in as {st.session_state.user_name}")
-            st.session_state.show_double_click_message = True
-            time.sleep(0.5)
-            st.rerun()
-        except Exception as e:
-            error_msg = str(e)
-            if "INVALID_LOGIN_CREDENTIALS" in error_msg:
-                st.error("Incorrect email or password.")
-            else:
-                st.error(f"Authentication failed: {error_msg}")
+        # Handle signup button click
+        if signup and email_valid and password_valid:
+            st.session_state.signup_clicked = True
+            st.session_state.signup_email = email
+            st.session_state.signup_password = password
 
-    # Handle signup button click
-    if signup and email_valid and password_valid:
-        st.session_state.signup_clicked = True
-        st.session_state.signup_email = email
-        st.session_state.signup_password = password
+        # Show username input if signup was clicked
+        if st.session_state.signup_clicked:
+            custom_username = st.text_input("Choose a username:", key="custom_username")
+            if st.button("Confirm Sign-Up", key="confirm_signup"):
+                if not custom_username or not custom_username.strip():
+                    st.error("Please enter a valid username.")
+                else:
+                    try:
+                        # Create user in Firebase Authentication
+                        user = auth.create_user_with_email_and_password(
+                            st.session_state.signup_email,
+                            st.session_state.signup_password
+                        )
+                        # Store temp user ID and username for verification
+                        st.session_state.temp_user_id = user['localId']
+                        st.session_state.temp_username = custom_username
+                        st.session_state.pending_verification = True
+                        # Save temporary user data
+                        safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                        db.child("pending_users").child(safe_email).set(
+                            {
+                                "username": custom_username,
+                                "email": st.session_state.signup_email,
+                                "created_at": time.time()
+                            },
+                            token=user['idToken']
+                        )
+                        # Send verification email
+                        action_code_settings = {
+                            "url": "https://your-app-url.com/verify",  # Replace with your app's URL
+                            "handleCodeInApp": True
+                        }
+                        verification_link = auth.generate_email_verification_link(
+                            st.session_state.signup_email,
+                            action_code_settings
+                        )
+                        # Store denial token
+                        denial_token = os.urandom(16).hex()
+                        db.child("pending_users").child(safe_email).child("denial_token").set(
+                            denial_token,
+                            token=user['idToken']
+                        )
+                        # Note: Firebase sends email from noreply@<project>.firebaseapp.com
+                        # For custom email with confirm/deny links, use Cloud Functions
+                        st.info(f"Verification email sent to {st.session_state.signup_email}. Please check your inbox.")
+                        # For demo, display links (in production, send via email)
+                        st.markdown(f"Confirm: {verification_link}")
+                        st.markdown(f"Deny: https://your-app-url.com/deny?token={denial_token}&email={safe_email}")
+                    except Exception as e:
+                        error_msg = str(e)
+                        if "EMAIL_EXISTS" in error_msg:
+                            st.error("This email is already registered. Please log in or use a different email.")
+                        elif "INVALID_EMAIL" in error_msg:
+                            st.error("Invalid email format.")
+                        elif "WEAK_PASSWORD" in error_msg:
+                            st.error("Password is too weak.")
+                        else:
+                            st.error(f"Failed to create account: {error_msg}")
 
-    # Show username input if signup was clicked
-    if st.session_state.signup_clicked:
-        custom_username = st.text_input("Choose a username:", key="custom_username")
-        if st.button("Confirm Sign-Up", key="confirm_signup"):
-            if not custom_username or not custom_username.strip():
-                st.error("Please enter a valid username.")
-            else:
-                try:
-                    # Create user in Firebase Authentication
-                    user = auth.create_user_with_email_and_password(
-                        st.session_state.signup_email,
-                        st.session_state.signup_password
-                    )
-                    # Sign in to get ID token
-                    login_response = auth.sign_in_with_email_and_password(
-                        st.session_state.signup_email,
-                        st.session_state.signup_password
-                    )
-                    # Update session state
+    else:
+        st.info("Please check your email to verify your account or deny the sign-up.")
+        if st.button("I’ve Verified My Email"):
+            try:
+                user = auth.sign_in_with_email_and_password(
+                    st.session_state.signup_email,
+                    st.session_state.signup_password
+                )
+                user_info = auth.get_account_info(user['idToken'])['users'][0]
+                if user_info.get('emailVerified', False):
+                    # Complete sign-up
                     st.session_state.logged_in = True
                     st.session_state.user_email = st.session_state.signup_email
-                    st.session_state.user_name = custom_username
-                    st.session_state.user_token = login_response['idToken']
-                    # Load chat history
+                    st.session_state.user_name = st.session_state.temp_username
+                    st.session_state.user_token = user['idToken']
                     st.session_state.chat_history = load_chat_history(
                         st.session_state.signup_email,
-                        login_response['idToken']
+                        user['idToken']
                     )
-                    # Update visit counter
                     update_visit_counter()
-                    # Save initial user data to Firebase
                     safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                    # Move data from pending_users to users
+                    pending_data = db.child("pending_users").child(safe_email).get(user['idToken']).val()
                     db.child("users").child(safe_email).set(
-                        {"username": custom_username},
-                        token=login_response['idToken']
+                        {"username": pending_data.get("username", st.session_state.temp_username)},
+                        token=user['idToken']
                     )
+                    db.child("pending_users").child(safe_email).remove(user['idToken'])
                     st.success(f"Account created for {st.session_state.user_name}")
                     st.session_state.show_double_click_message = True
-                    # Reset signup state
                     st.session_state.signup_clicked = False
                     st.session_state.signup_email = ""
                     st.session_state.signup_password = ""
+                    st.session_state.pending_verification = False
+                    st.session_state.temp_user_id = None
+                    st.session_state.temp_username = None
                     time.sleep(0.5)
                     st.rerun()
-                except Exception as e:
-                    error_msg = str(e)
-                    if "EMAIL_EXISTS" in error_msg:
-                        st.error("This email is already registered. Please log in or use a different email.")
-                    elif "INVALID_EMAIL" in error_msg:
-                        st.error("Invalid email format.")
-                    elif "WEAK_PASSWORD" in error_msg:
-                        st.error("Password is too weak.")
-                    else:
-                        st.error(f"Failed to create account: {error_msg}")
+                else:
+                    st.error("Email not verified yet. Please check your inbox.")
+            except Exception as e:
+                st.error(f"Error checking verification: {str(e)}")
 
     # Forgot Password
     with st.expander("Forgot Password?"):
@@ -564,7 +611,6 @@ if st.session_state.logged_in:
 
         if st.session_state.chat_history:
             for idx, thread in enumerate(st.session_state.chat_history):
-                # Ensure thread is a dict with a valid initial message
                 if not isinstance(thread, dict) or "initial" not in thread:
                     continue
                 initial = thread.get("initial")
@@ -600,6 +646,9 @@ if st.session_state.logged_in:
             st.session_state.selected_conversation_index = None
             st.session_state.show_settings = False
             st.session_state.signup_clicked = False
+            st.session_state.pending_verification = False
+            st.session_state.temp_user_id = None
+            st.session_state.temp_username = None
             st.rerun()
 
 # --- Settings Panel ---
@@ -659,7 +708,6 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get response: {ai_response}")
                     else:
-                        # Create a new thread
                         new_thread = {"initial": (user_input, ai_response), "follow_ups": []}
                         st.session_state.chat_history.append(new_thread)
                         save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
@@ -670,12 +718,10 @@ if st.session_state.logged_in and not st.session_state.show_settings:
             idx = st.session_state.selected_conversation_index
             if 0 <= idx < len(st.session_state.chat_history):
                 thread = st.session_state.chat_history[idx]
-                # Display initial message
                 user_msg, ai_msg = thread["initial"]
                 st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
-                # Display follow-ups
                 for follow_up_user_msg, follow_up_ai_msg in thread.get("follow_ups", []):
                     st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
                     st.markdown(f'<div class="ai-bubble">🤖 SATyr: {follow_up_ai_msg}</div>', unsafe_allow_html=True)
@@ -685,7 +731,6 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                 reply_submitted = st.form_submit_button("Reply")
 
                 if reply_submitted and follow_up_input:
-                    # Build context from initial message and all follow-ups
                     thread = st.session_state.chat_history[idx]
                     context_parts = [f"User: {thread['initial'][0]}\nSATyr: {thread['initial'][1]}"]
                     context_parts.extend([f"User: {u}\nSATyr: {a}" for u, a in thread.get("follow_ups", [])])
@@ -694,7 +739,6 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                     if ai_response.startswith("[Error]"):
                         st.error(f"Failed to get follow-up response: {ai_response}")
                     else:
-                        # Append follow-up to the current thread
                         if "follow_ups" not in st.session_state.chat_history[idx]:
                             st.session_state.chat_history[idx]["follow_ups"] = []
                         st.session_state.chat_history[idx]["follow_ups"].append((follow_up_input, ai_response))

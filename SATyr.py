@@ -158,6 +158,12 @@ if "user_token" not in st.session_state:
     st.session_state.user_token = None
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
+if "signup_clicked" not in st.session_state:
+    st.session_state.signup_clicked = False
+if "signup_email" not in st.session_state:
+    st.session_state.signup_email = ""
+if "signup_password" not in st.session_state:
+    st.session_state.signup_password = ""
 
 # --- Custom styling with chat bubbles and theme support ---
 st.markdown(
@@ -232,7 +238,7 @@ st.markdown(
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_hover']};
+        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
         transform: scale(1.05);
     }}
     .stSidebar .stButton > button:not([id*="history"]):active,
@@ -304,7 +310,7 @@ def update_visit_counter():
         db.child("visit_count").set(new_count)
         st.session_state.visit_count = new_count
     except Exception as e:
-        st.warning(f"Failed to update visit counter: {str(e)}.")
+        st.warning(f"Failed to update visit counter: {str(e)}")
 
 # --- Load visit counter ---
 def load_visit_counter():
@@ -312,7 +318,7 @@ def load_visit_counter():
         count = db.child("visit_count").get().val() or 0
         st.session_state.visit_count = count
     except Exception as e:
-        st.warning(f"Failed to load visit counter: {str(e)}.")
+        st.warning(f"Failed to load visit counter: {str(e)}")
 
 # --- Load chat history ---
 def load_chat_history(email: str, token: str) -> List[Dict]:
@@ -345,7 +351,7 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
                 # Ignore any other formats
         return valid_threads
     except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}.")
+        st.warning(f"Failed to load chat history: {str(e)}")
         return []
 
 # --- Save chat history ---
@@ -356,7 +362,7 @@ def save_chat_history(email: str, chat_history: List[Dict], token: str):
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
     except Exception as e:
-        st.warning(f"Failed to save chat history: {str(e)}.")
+        st.warning(f"Failed to save chat history: {str(e)}")
 
 # --- Clear chat history ---
 def clear_chat_history(email: str, token: str):
@@ -368,7 +374,7 @@ def clear_chat_history(email: str, token: str):
         st.session_state.chat_history = []
         st.success("Chat history cleared successfully!")
     except Exception as e:
-        st.error(f"Failed to clear chat history: {str(e)}.")
+        st.error(f"Failed to clear chat history: {str(e)}")
 
 # --- Initial load of visit counter ---
 load_visit_counter()
@@ -378,8 +384,16 @@ if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
     st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
 
-    email = st.text_input("📧 Email")
-    password = st.text_input("🔒 Password", type="password")
+    # Initialize session state for signup
+    if "signup_clicked" not in st.session_state:
+        st.session_state.signup_clicked = False
+    if "signup_email" not in st.session_state:
+        st.session_state.signup_email = ""
+    if "signup_password" not in st.session_state:
+        st.session_state.signup_password = ""
+
+    email = st.text_input("📧 Email", key="email_input")
+    password = st.text_input("🔒 Password", type="password", key="password_input")
 
     email_valid = "@" in email if email else False
     if email and not email_valid:
@@ -395,51 +409,7 @@ if not st.session_state.logged_in:
     with col2:
         signup = st.button("📝 Sign Up")
 
-    with st.expander("Forgot Password?"):
-        reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
-        reset_button = st.button("🔄 Send Reset Email")
-        if reset_button and reset_email:
-            if "@" not in reset_email:
-                st.error("Please enter a valid email address containing '@'.")
-            else:
-                try:
-                    auth.send_password_reset_email(reset_email)
-                    st.success("Password reset email sent! Check your inbox.")
-                except Exception as e:
-                    error_msg = str(e)
-                    if "EMAIL_NOT_FOUND" in error_msg:
-                        st.error("No account found with this email.")
-                    elif "INVALID_EMAIL" in error_msg:
-                        st.error("Invalid email address.")
-                    else:
-                        st.error(f"Failed to send reset email: {error_msg}")
-
-    if signup and email_valid and password_valid:
-        custom_username = st.text_input("Choose a username:", key="custom_username")
-        if st.button("Confirm Sign-Up", key="confirm_signup"):
-            if not custom_username or not custom_username.strip():
-                st.error("Please enter a valid username.")
-            else:
-                try:
-                    user = auth.create_user_with_email_and_password(email, password)
-                    st.session_state.logged_in = True
-                    st.session_state.user_email = email
-                    st.session_state.user_name = custom_username
-                    login_response = auth.sign_in_with_email_and_password(email, password)
-                    st.session_state.user_token = login_response['idToken']
-                    st.session_state.chat_history = load_chat_history(email, login_response['idToken'])
-                    update_visit_counter()
-                    st.success(f"Account created for {st.session_state.user_name}")
-                    st.session_state.show_double_click_message = True
-                    time.sleep(0.5)
-                    st.rerun()
-                except Exception as e:
-                    error_msg = str(e)
-                    if "EMAIL_EXISTS" in error_msg:
-                        st.error("This email is already registered. Please log in or use a different email.")
-                    else:
-                        st.error(f"Authentication failed: {error_msg}")
-
+    # Handle login
     if login and email_valid and password_valid:
         try:
             user = auth.sign_in_with_email_and_password(email, password)
@@ -459,6 +429,87 @@ if not st.session_state.logged_in:
                 st.error("Incorrect email or password.")
             else:
                 st.error(f"Authentication failed: {error_msg}")
+
+    # Handle signup button click
+    if signup and email_valid and password_valid:
+        st.session_state.signup_clicked = True
+        st.session_state.signup_email = email
+        st.session_state.signup_password = password
+
+    # Show username input if signup was clicked
+    if st.session_state.signup_clicked:
+        custom_username = st.text_input("Choose a username:", key="custom_username")
+        if st.button("Confirm Sign-Up", key="confirm_signup"):
+            if not custom_username or not custom_username.strip():
+                st.error("Please enter a valid username.")
+            else:
+                try:
+                    # Create user in Firebase Authentication
+                    user = auth.create_user_with_email_and_password(
+                        st.session_state.signup_email,
+                        st.session_state.signup_password
+                    )
+                    # Sign in to get ID token
+                    login_response = auth.sign_in_with_email_and_password(
+                        st.session_state.signup_email,
+                        st.session_state.signup_password
+                    )
+                    # Update session state
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = st.session_state.signup_email
+                    st.session_state.user_name = custom_username
+                    st.session_state.user_token = login_response['idToken']
+                    # Load chat history
+                    st.session_state.chat_history = load_chat_history(
+                        st.session_state.signup_email,
+                        login_response['idToken']
+                    )
+                    # Update visit counter
+                    update_visit_counter()
+                    # Save initial user data to Firebase
+                    safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
+                    db.child("users").child(safe_email).set(
+                        {"username": custom_username},
+                        token=login_response['idToken']
+                    )
+                    st.success(f"Account created for {st.session_state.user_name}")
+                    st.session_state.show_double_click_message = True
+                    # Reset signup state
+                    st.session_state.signup_clicked = False
+                    st.session_state.signup_email = ""
+                    st.session_state.signup_password = ""
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    error_msg = str(e)
+                    if "EMAIL_EXISTS" in error_msg:
+                        st.error("This email is already registered. Please log in or use a different email.")
+                    elif "INVALID_EMAIL" in error_msg:
+                        st.error("Invalid email format.")
+                    elif "WEAK_PASSWORD" in error_msg:
+                        st.error("Password is too weak.")
+                    else:
+                        st.error(f"Failed to create account: {error_msg}")
+
+    # Forgot Password
+    with st.expander("Forgot Password?"):
+        reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
+        reset_button = st.button("🔄 Send Reset Email")
+        if reset_button and reset_email:
+            if "@" not in reset_email:
+                st.error("Please enter a valid email address containing '@'.")
+            else:
+                try:
+                    auth.send_password_reset_email(reset_email)
+                    st.success("Password reset email sent! Check your inbox.")
+                except Exception as e:
+                    error_msg = str(e)
+                    if "EMAIL_NOT_FOUND" in error_msg:
+                        st.error("No account found with this email.")
+                    elif "INVALID_EMAIL" in error_msg:
+                        st.error("Invalid email address.")
+                    else:
+                        st.error(f"Failed to send reset email: {error_msg}")
 
 # --- Sidebar ---
 if st.session_state.logged_in:
@@ -536,6 +587,7 @@ if st.session_state.logged_in:
             st.session_state.chat_history = []
             st.session_state.selected_conversation_index = None
             st.session_state.show_settings = False
+            st.session_state.signup_clicked = False
             st.rerun()
 
 # --- Settings Panel ---
@@ -546,7 +598,15 @@ if st.session_state.logged_in and st.session_state.show_settings:
     if st.button("Save Nickname"):
         if new_nickname and new_nickname.strip():
             st.session_state.user_name = new_nickname
-            st.success(f"Nickname updated to {st.session_state.user_name}")
+            try:
+                safe_email = st.session_state.user_email.replace(".", "_").replace("@", "_")
+                db.child("users").child(safe_email).update(
+                    {"username": new_nickname},
+                    token=st.session_state.user_token
+                )
+                st.success(f"Nickname updated to {st.session_state.user_name}")
+            except Exception as e:
+                st.error(f"Failed to update nickname in Firebase: {str(e)}")
             st.session_state.show_settings = False
             st.rerun()
         else:
@@ -572,7 +632,7 @@ if st.session_state.logged_in and st.session_state.show_settings:
 
 # --- Main Chat UI ---
 if st.session_state.logged_in and not st.session_state.show_settings:
-    st.title("SATyr - you're SAT saviour")
+    st.title("SATyr - your SAT saviour")
 
     if st.session_state.user_name:
         st.session_state.chatbot.user_name = st.session_state.user_name

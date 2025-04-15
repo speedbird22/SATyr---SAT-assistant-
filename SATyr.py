@@ -600,16 +600,12 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                 thread = st.session_state.chat_history[idx]
                 # Display initial message
                 user_msg, ai_msg = thread["initial"]
-                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                 st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
-                st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                 st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
                 # Display follow-ups
                 for follow_up_user_msg, follow_up_ai_msg in thread.get("follow_ups", []):
-                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                     st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
-                    st.markdown('<hr style="border: 1px solid #ccc; margin: 10px 0;">', unsafe_allow_html=True)
                     st.markdown(f'<div class="ai-bubble">🤖 SATyr: {follow_up_ai_msg}</div>', unsafe_allow_html=True)
 
             with st.form(f"reply_form_{idx}", clear_on_submit=True):

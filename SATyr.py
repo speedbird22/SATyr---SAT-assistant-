@@ -7,10 +7,49 @@ from dotenv import load_dotenv
 import os
 import pyrebase
 import requests
-from colors import COLORS, LIGHT_MODE_COLORS
+
+# Define color schemes inline
+COLORS = {
+    'splash_screen': '#1A1A1A',
+    'app_background': '#1A1A1A',
+    'sidebar_background': '#2A2A2A',
+    'input_background': '#3A3A3A',
+    'text_color': '#FFFFFF',
+    'visit_counter_background': '#3A3A3A',
+    'visit_counter_text': '#FFFFFF',
+    'floating_message_background': '#3A3A3A',
+    'button_form_default': '#4CAF50',
+    'button_form_hover': '#45A049',
+    'button_form_active': '#3D8B40',
+    'button_sidebar_default': '#2196F3',
+    'button_sidebar_hover': '#1E88E5',
+    'button_sidebar_active': '#1976D2',
+    'button_history_default': '#3A3A3A',
+    'button_history_hover': '#4A4A4A',
+    'button_history_active': '#2A2A2A'
+}
+
+LIGHT_MODE_COLORS = {
+    'light_app_background': '#F5F5F5',
+    'light_sidebar_background': '#E0E0E0',
+    'light_input_background': '#FFFFFF',
+    'light_text_color': '#000000',
+    'light_visit_counter_background': '#E0E0E0',
+    'light_visit_counter_text': '#000000',
+    'light_floating_message_background': '#E0E0E0',
+    'light_button_form_default': '#4CAF50',
+    'light_button_form_hover': '#45A049',
+    'light_button_form_active': '#3D8B40',
+    'light_button_sidebar_default': '#2196F3',
+    'light_button_sidebar_hover': '#1E88E5',
+    'light_button_sidebar_active': '#1976D2',
+    'light_button_history_default': '#E0E0E0',
+    'light_button_history_hover': '#D0D0D0',
+    'light_button_history_active': '#C0C0C0'
+}
 
 # Set page config
-st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
+st.set Vander_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
 # Initialize session state
 if "splash_shown" not in st.session_state:
@@ -83,7 +122,7 @@ if not st.session_state.splash_shown:
 load_dotenv()
 
 # Firebase configuration
-firebase_config = {
+firebase_config =gen(
     "apiKey": os.getenv("API_KEY", ""),
     "authDomain": os.getenv("AUTH_DOMAIN", ""),
     "projectId": os.getenv("PROJECT_ID", ""),
@@ -92,7 +131,7 @@ firebase_config = {
     "appId": os.getenv("APP_ID", ""),
     "measurementId": os.getenv("MEASUREMENT_ID", ""),
     "databaseURL": os.getenv("DATABASE_URL", "")
-}
+)
 
 # Initialize Firebase
 try:

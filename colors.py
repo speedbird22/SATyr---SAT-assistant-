@@ -43,31 +43,31 @@ COLORS = {
 LIGHT_MODE_COLORS = {
     # App Backgrounds
     "light_app_background": "#FFFFFF",  # White
-    "light_sidebar_background": "#F8F8F8",  # Very light gray
-    "light_input_background": "#E0E0E0",  # Light gray
+    "light_sidebar_background": "#FFF5E6",  # Light golden
+    "light_input_background": "#E6F0FF",  # Light blue
 
     # Text Colors
-    "light_text_color": "#000000",  # Black
-    "light_visit_counter_text": "#000000",  # Black
+    "light_text_color": "#1E2A44",  # Dark blue for contrast
+    "light_visit_counter_text": "#1E2A44",  # Dark blue
 
     # UI Elements
-    "light_visit_counter_background": "#B0B0B0",  # Medium gray
-    "light_floating_message_background": "#E0E0E0",  # Light gray
+    "light_visit_counter_background": "#FF6666",  # Soft red
+    "light_floating_message_background": "#EFAE2D",  # Golden
 
     # Button Colors (Login/Signup and Form Buttons)
-    "light_button_form_default": "#000000",  # Black
-    "light_button_form_hover": "#333333",  # Darker black
-    "light_button_form_active": "#666666",  # Even darker black
+    "light_button_form_default": "#FF3333",  # Bright red
+    "light_button_form_hover": "#CC2929",  # Darker red
+    "light_button_form_active": "#991F1F",  # Darkest red
 
     # Sidebar Buttons (New Session, Logout, non-history)
-    "light_button_sidebar_default": "#6C757D",  # Dark gray
-    "light_button_sidebar_hover": "#5A6268",  # Darker gray
-    "light_button_sidebar_active": "#494F54",  # Darkest gray
+    "light_button_sidebar_default": "#EFAE2D",  # Golden
+    "light_button_sidebar_hover": "#D49F26",  # Darker golden
+    "light_button_sidebar_active": "#B7871E",  # Darkest golden
 
     # History Buttons (Sidebar)
-    "light_button_history_default": "#A0A0A0",  # Light gray
-    "light_button_history_hover": "#8C8C8C",  # Medium gray
-    "light_button_history_active": "#787878",  # Dark gray
+    "light_button_history_default": "#4A6B8A",  # Soft blue
+    "light_button_history_hover": "#3D5872",  # Darker blue
+    "light_button_history_active": "#2F4456",  # Darkest blue
 
     # Message Bubbles
     "light_user_message_background": "#FF0000",  # Red

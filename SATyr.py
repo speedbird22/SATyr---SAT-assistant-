@@ -10,25 +10,25 @@ import requests
 
 # Define color schemes inline
 COLORS = {
-    'splash_screen': '#000000',
-    'app_background': '#000000',
-    'sidebar_background': '#1A1A1A',
-    'input_background': '#2A2A2A',
+    'splash_screen': '#D8AA2A',  # Warm gold
+    'app_background': '#000099',  # Navy blue
+    'sidebar_background': '#1C2526',  # Slightly brighter shade of navy blue
+    'input_background': '#B2984A',  # Dark shade of gold
     'text_color': '#FFFFFF',
-    'visit_counter_background': '#2A2A2A',
-    'visit_counter_text': '#FFFFFF',
-    'floating_message_background': '#2A2A2A',
-    'button_form_default': '#00FF00',  # Green for AI message in dark theme
-    'button_form_hover': '#00CC00',
-    'button_form_active': '#009900',
-    'button_sidebar_default': '#0000FF',  # Blue for user message in dark theme
-    'button_sidebar_hover': '#0000CC',
-    'button_sidebar_active': '#000099',
+    'visit_counter_background': '#D8AA2A80',  # Translucent gold (with 50% opacity)
+    'visit_counter_text': '#FFFFFF',  # White
+    'floating_message_background': '#B2984A',  # Dark shade of gold
+    'button_form_default': '#34C759',  # Exact green from SMS bubble in image
+    'button_form_hover': '#2EB74E',  # Slightly darker green
+    'button_form_active': '#28A745',  # Even darker green
+    'button_sidebar_default': '#007AFF',  # Exact blue from iMessage bubble in image
+    'button_sidebar_hover': '#0066CC',  # Slightly darker blue
+    'button_sidebar_active': '#0055B3',  # Even darker blue
     'button_history_default': '#2A2A2A',
     'button_history_hover': '#3A3A3A',
     'button_history_active': '#1A1A1A',
-    'user_message': '#0000FF',  # Blue, matching button_sidebar_default
-    'ai_message': '#00FF00'  # Green, matching button_form_default
+    'user_message': '#007AFF',  # Exact blue from iMessage bubble
+    'ai_message': '#34C759'  # Exact green from SMS bubble
 }
 
 LIGHT_MODE_COLORS = {

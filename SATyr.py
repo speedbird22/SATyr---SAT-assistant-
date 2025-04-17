@@ -1,109 +1,140 @@
-# Debug: Confirm code version
-print("Running minimal SATyr app.py - Version with status fix (2025-04-17)")
-
-import streamlit as st
 import http.client
 import json
-from typing import Optional, Dict, List, Tuple
+import os
+from typing import Optional, Dict
 
-# Set page config
-st.set_page_config(page_title="SATyr Chatbot", page_icon="🧠")
-
-# AI Client
-class SATyrAI:
-    def __init__(self):
-        self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"
-        self.domain = "km-pfrdhsi"
+class PersonalAIChat:
+    def _init_(self):
+        self.api_key = os.getenv("PERSONAL_AI_KEY", "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo")
+        self.domain = os.getenv("AI_DOMAIN", "km-pfrdhsi")
         self.base_url = "api.personal.ai"
-        self.session_id = None
-        self.user_name = "Guest"  # Hardcoded for simplicity
-        self.context = None
-        self.conn = None
-        self._connect()
+        self.session_id: Optional[str] = None
+        self.user_name: Optional[str] = None
+        self.context: Optional[str] = None  # New context tracking
+        self._connection = http.client.HTTPSConnection(self.base_url)
 
-    def _connect(self):
-        if self.conn:
-            self.conn.close()
-        self.conn = http.client.HTTPSConnection(self.base_url, timeout=30)
-
-    def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
+    def _create_payload(self, text: str) -> Dict:
+        """Construct API payload with current session state"""
         payload = {
             "Text": text,
-            "Context": context if context else "",
             "DomainName": self.domain,
-            "UserName": self.user_name,
-            "SourceName": "API",
-            "Is_stack": False,
-            "Is_draft": False
+            "UserName": self.user_name or "Guest"
         }
         if self.session_id:
             payload["SessionId"] = self.session_id
+        if self.context:  # Add context to payload if available
+            payload["Context"] = self.context
         return payload
 
-    def send_request(self, text: str, context: Optional[str] = None) -> str:
-        print("Executing SATyrAI.send_request with response.status")
-        if not text or not isinstance(text, str) or not text.strip():
-            return "[Error] Invalid or empty input text"
-
+    def send_request(self, text: str) -> Optional[Dict]:
+        """Handle API communication with error logging"""
         try:
-            payload = json.dumps(self._create_payload(text, context))
+            payload = json.dumps(self._create_payload(text))
             headers = {
                 'Content-Type': 'application/json',
                 'x-api-key': self.api_key
             }
 
-            self._connect()
-            self.conn.request("POST", "/v1/message", payload, headers)
-            response = self.conn.getresponse()
-            response_data = response.read().decode()
-
-            # Debug: Log response details
-            print(f"API Response Status: {response.status}, Reason: {response.reason}")
-            print(f"API Response Data: {response_data}")
-
+            self._connection.request("POST", "/v1/message", payload, headers)
+            response = self._connection.getresponse()
+            
             if response.status == 200:
-                try:
-                    data = json.loads(response_data)
-                    self.session_id = data.get("SessionId", self.session_id)
-                    self.context = data.get("ai_message", "[Error] No AI message in response")
-                    return self.context
-                except json.JSONDecodeError:
-                    return f"[Error] Invalid JSON response: {response_data}"
-            return f"[Error] API request failed: {response.status} - {response.reason}"
+                response_data = json.loads(response.read().decode())
+                self.session_id = response_data.get("SessionId", self.session_id)
+                self.context = response_data.get("ai_message")  # Store response as new context
+                return response_data
+            
+            self._log_api_error(response)
+            return None
 
+        except json.JSONDecodeError as e:
+            print(f"Invalid JSON response: {str(e)}")
+            return None
         except Exception as e:
-            return f"[Error] Network or API error: {str(e)}"
-        finally:
-            self._connect()
+            print(f"Network error: {str(e)}")
+            return None
 
-    def reset(self):
+    def _log_api_error(self, response: http.client.HTTPResponse):
+        """Detailed error diagnostics"""
+        error_body = response.read().decode()
+        print(f"\n=== API Error ({response.status} {response.reason}) ===")
+        print(f"Domain: {self.domain}")
+        print(f"API Key: {self.api_key[:6]}...{self.api_key[-4:]}")
+        print(f"Response: {error_body[:200]}...")
+        print("Troubleshooting Steps:")
+        print("1. Verify domain at https://app.personal.ai/domains")
+        print("2. Check API key permissions")
+        print("3. Test connection with: curl -X POST \\")
+        print(f'   -H "x-api-key: {self.api_key[:6]}..." \\')
+        print(f'   -d \'{{"Text":"Test","DomainName":"{self.domain}"}}\' \\')
+        print(f'   https://{self.base_url}/v1/message')
+
+    def start_new_session(self):
+        """Reset conversation history"""
         self.session_id = None
-        self.context = None
-        self._connect()
+        self.user_name = None
+        self.context = None  # Clear context on new session
+        print("\n" + "="*40)
+        print(" New Chat Session Initialized ")
+        print("="*40 + "\n")
 
-# Initialize session state for chatbot and chat history
-if "chatbot" not in st.session_state:
-    st.session_state.chatbot = SATyrAI()
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+    def chat_interface(self):
+        """Main interactive chat loop"""
+        self.start_new_session()
+        
+        # Get user identity
+        while not self.user_name:
+            try:
+                name = input("AI: Welcome! How should I address you? ").strip()
+                if name.lower() in ('exit', 'quit'):
+                    return
+                self.user_name = name or "Anonymous"
+            except KeyboardInterrupt:
+                print("\nSession cancelled")
+                return
 
-# Main Chat UI
-st.title("SATyr Chatbot")
+        # Conversation loop
+        while True:
+            try:
+                user_input = input(f"{self.user_name}: ").strip()
+                
+                if not user_input:
+                    continue
+                if user_input.lower() == 'new':
+                    self.start_new_session()
+                    continue
+                if user_input.lower() in ('exit', 'quit'):
+                    break
 
-with st.form("chat_form", clear_on_submit=True):
-    user_input = st.text_input("Your message:", placeholder="Type your message here...")
-    submitted = st.form_submit_button("Send")
+                response = self.send_request(user_input)
+                
+                if response:
+                    print(f"\nAI: {response.get('ai_message', 'No response received')}")
+                    print(f"[Session: {self.session_id[:8]}]" if self.session_id else "")
+                else:
+                    print("\nAI: Service temporarily unavailable")
 
-    if submitted and user_input:
-        ai_response = st.session_state.chatbot.send_request(user_input)
-        if ai_response.startswith("[Error]"):
-            st.error(f"Failed to get response: {ai_response}")
-        else:
-            st.session_state.chat_history.append((user_input, ai_response))
-            st.rerun()
+            except KeyboardInterrupt:
+                print("\nSession ended by user")
+                break
 
-# Display chat history
-for user_msg, ai_msg in st.session_state.chat_history:
-    st.markdown(f"**You**: {user_msg}")
-    st.markdown(f"**SATyr**: {ai_msg}")
-    st.markdown("---")
+    def _del_(self):
+        """Cleanup resources"""
+        self._connection.close()
+
+if _name_ == "_main_":
+    # Configuration validation
+    chat = PersonalAIChat()
+    
+    print("Initializing AI Chat...")
+    test_response = chat.send_request("Connection test")
+    
+    if test_response and test_response.get("ai_message"):
+        print("System Ready - Connection Verified\n")
+        chat.chat_interface()
+    else:
+        print("\nFailed to initialize. Potential issues:")
+        print("- Incorrect API key or domain configuration")
+        print("- Network connectivity problems")
+        print("- Service outage (check status.personal.ai)")
+        print("\nVerify configuration and try again.")

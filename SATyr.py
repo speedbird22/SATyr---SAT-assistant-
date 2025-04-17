@@ -1,5 +1,4 @@
 import streamlit as st
-import http.client
 import json
 from typing import Optional, Dict, List, Tuple
 import time
@@ -78,16 +77,10 @@ class SATyrAI:
     def __init__(self):
         self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"
         self.domain = "km-pfrdhsi"
-        self.base_url = "api.personal.ai"
+        self.base_url = "https://api.personal.ai/v1/message"
         self.session_id = None
         self.user_name = None
         self.context = None
-        self.conn = None
-
-    def _connect(self):
-        if self.conn:
-            self.conn.close()
-        self.conn = http.client.HTTPSConnection(self.base_url, timeout=30)
 
     def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
         payload = {
@@ -108,46 +101,29 @@ class SATyrAI:
             return "[Error] Invalid or empty input text"
 
         try:
-            payload = json.dumps(self._create_payload(text, context))
             headers = {
                 'Content-Type': 'application/json',
                 'x-api-key': self.api_key
             }
+            payload = self._create_payload(text, context)
+            response = requests.post(self.base_url, headers=headers, json=payload, timeout=30)
 
-            self._connect()
-            self.conn.request("POST", "/v1/message", payload, headers)
-            response = self.conn.getresponse()
-            if response is None:
-                return "[Error] Failed to get response from server"
-
-            # Debugging: Print response object details
-            st.write(f"Response type: {type(response)}, Attributes: {dir(response)}")
-            response_data = response.read().decode()
-
-            if response.status == 200:
-                try:
-                    data = json.loads(response_data)
-                    self.session_id = data.get("SessionId", self.session_id)
-                    self.context = data.get("ai_message", "[Error] No AI message in response")
-                    return self.context
-                except json.JSONDecodeError as e:
-                    return f"[Error] Invalid JSON response: {str(e)} - {response_data}"
+            if response.status_code == 200:
+                data = response.json()
+                self.session_id = data.get("SessionId", self.session_id)
+                self.context = data.get("ai_message", "[Error] No AI message in response")
+                return self.context
             else:
-                return f"[Error] API request failed: {response.status} - {response.reason}"
+                return f"[Error] API request failed: {response.status_code} - {response.text}"
 
-        except http.client.HTTPException as e:
-            return f"[Error] HTTP error: {str(e)}"
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             return f"[Error] Network or API error: {str(e)}"
-        finally:
-            if self.conn:
-                self.conn.close()
-                self.conn = None
+        except json.JSONDecodeError as e:
+            return f"[Error] Invalid JSON response: {str(e)}"
 
     def reset(self):
         self.session_id = None
         self.context = None
-        self._connect()
 
 # --- Session State Init ---
 if "logged_in" not in st.session_state:

@@ -18,9 +18,9 @@ COLORS = {
     'visit_counter_background': '#D8AA2A80',  # Translucent gold (50% opacity)
     'visit_counter_text': '#FFFFFF',  # White
     'floating_message_background': '#B2984A',  # Dark shade of gold
-    'button_form_default': '#80FF80',  # Lighter green with strong white mix
-    'button_form_hover': '#66CC66',  # Slightly darker green with white influence
-    'button_form_active': '#4CAF50',  # Even darker green with white influence
+    'button_form_default': '#00FF00',  # Bright green from the image
+    'button_form_hover': '#00CC00',  # Slightly darker green
+    'button_form_active': '#009900',  # Even darker green
     'button_sidebar_default': '#007AFF',  # Blue matching user buttons
     'button_sidebar_hover': '#0066CC',  # Slightly darker blue
     'button_sidebar_active': '#0055B3',  # Even darker blue
@@ -28,7 +28,7 @@ COLORS = {
     'button_history_hover': '#3A3A5E',  # Slightly lighter
     'button_history_active': '#1A1A3E',  # Slightly darker
     'user_message': '#007AFF',  # Blue matching user buttons
-    'ai_message': '#80FF80'  # Lighter green with strong white mix
+    'ai_message': '#00FF00'  # Bright green from the image
 }
 
 LIGHT_MODE_COLORS = {

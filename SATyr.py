@@ -121,18 +121,23 @@ class SATyrAI:
             if response is None:
                 return "[Error] Failed to get response from server"
 
+            # Read the response
             response_data = response.read().decode()
 
-            if response.status == 200:  # Use response.status instead of response.status_code
+            # Check the status
+            if response.status == 200:
                 try:
                     data = json.loads(response_data)
                     self.session_id = data.get("SessionId", self.session_id)
                     self.context = data.get("ai_message", "[Error] No AI message in response")
                     return self.context
-                except json.JSONDecodeError:
-                    return f"[Error] Invalid JSON response: {response_data}"
-            return f"[Error] API request failed: {response.status} - {response.reason}"
+                except json.JSONDecodeError as e:
+                    return f"[Error] Invalid JSON response: {str(e)} - {response_data}"
+            else:
+                return f"[Error] API request failed: {response.status} - {response.reason}"
 
+        except http.client.HTTPException as e:
+            return f"[Error] HTTP error: {str(e)}"
         except Exception as e:
             return f"[Error] Network or API error: {str(e)}"
         finally:

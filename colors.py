@@ -47,8 +47,8 @@ LIGHT_MODE_COLORS = {
     "light_visit_counter_text": "#1E2A44",  # Dark blue
 
     # UI Elements
-    "light_visit_counter_background": "#FFFFFF",  # Medium gray
-    "light_floating_message_background": "#FFFFFF",  # Soft beige
+    "light_visit_counter_background": "#B0B0B0",  # Medium gray
+    "light_floating_message_background": "#E0DCD5",  # Soft beige
 
     # Button Colors (Login/Signup and Form Buttons)
     "light_button_form_default": "#1E2A44",  # Dark blue

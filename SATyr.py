@@ -195,9 +195,11 @@ st.markdown(
     body {{
         background-color: {COLORS['app_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_app_background']};
         color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        transition: background-color 0.3s, color 0.3s; /* Smooth transition */
     }}
     .sidebar .sidebar-content {{
         background-color: {COLORS['sidebar_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_sidebar_background']};
+        transition: background-color 0.3s;
     }}
     .block-container {{
         padding: 2rem 2rem 2rem;
@@ -205,6 +207,7 @@ st.markdown(
     input, textarea {{
         background-color: {COLORS['input_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_input_background']} !important;
         color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']} !important;
+        transition: background-color 0.3s, color 0.3s;
     }}
     #visit-counter {{
         position: relative;
@@ -216,6 +219,7 @@ st.markdown(
         margin-top: 5px;
         display: inline-block;
         z-index: 1001;
+        transition: background-color 0.3s, color 0.3s;
     }}
     #floating-message {{
         position: fixed;
@@ -228,6 +232,7 @@ st.markdown(
         border-radius: 5px;
         display: none;
         z-index: 1000;
+        transition: background-color 0.3s, color 0.3s;
     }}
     .stButton > button {{
         border: none;
@@ -235,7 +240,7 @@ st.markdown(
         padding: 8px 16px;
         font-size: 14px;
         font-weight: 500;
-        transition: all 0.2s ease;
+        transition: all 0.2s ease, background-color 0.3s;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         width: 100%;
     }}
@@ -243,6 +248,7 @@ st.markdown(
     form .stButton > button {{
         background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
         color: white;
+        transition: background-color 0.3s;
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
     form .stButton > button:hover {{
@@ -258,6 +264,7 @@ st.markdown(
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
         background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
         color: white;
+        transition: background-color 0.3s;
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
@@ -274,6 +281,7 @@ st.markdown(
         color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
         font-size: 13px;
         padding: 6px 12px;
+        transition: background-color 0.3s, color 0.3s;
     }}
     .stSidebar .stButton[id*="history"] > button:hover {{
         background-color: {COLORS['button_history_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_hover']};
@@ -297,22 +305,24 @@ st.markdown(
         image-rendering: crisp-edges;
     }}
     .user-bubble {{
-        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
+        background-color: {COLORS['user_message_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_user_message_background']};
         color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 0 15px;
         display: inline-block;
         max-width: 70%;
         margin: 5px 0;
+        transition: background-color 0.3s;
     }}
     .ai-bubble {{
-        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
+        background-color: {COLORS['ai_message_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_ai_message_background']};
         color: white;
         padding: 10px 15px;
         border-radius: 15px 15px 15px 0;
         display: inline-block;
         max-width: 70%;
         margin: 5px 0;
+        transition: background-color 0.3s;
     }}
     </style>
     """,
@@ -743,9 +753,9 @@ if st.session_state.logged_in and st.session_state.show_settings:
     light_mode = st.checkbox("Enable Light Mode", value=st.session_state.light_mode)
     if st.button("Apply Theme"):
         st.session_state.light_mode = light_mode
-        st.success("Theme applied! Returning to chat...")
-        st.session_state.show_settings = False
-        st.rerun()
+        st.success("Theme applied! Reloading to apply changes...")
+        # Force a full page reload to ensure CSS updates
+        st.experimental_rerun()
 
     if st.button("Back to Chat"):
         st.session_state.show_settings = False

@@ -127,6 +127,8 @@ if "user_email" not in st.session_state:
     st.session_state.user_email = None
 if "user_token" not in st.session_state:
     st.session_state.user_token = None
+if "refresh_token" not in st.session_state:
+    st.session_state.refresh_token = None
 if "visit_count" not in st.session_state:
     st.session_state.visit_count = 0
 if "signup_clicked" not in st.session_state:
@@ -197,6 +199,34 @@ try:
 except Exception as e:
     st.error(f"Failed to initialize Firebase: {str(e)}")
     st.stop()
+
+# Function to refresh user token
+def refresh_user_token(refresh_token: str) -> Optional[str]:
+    try:
+        response = requests.post(
+            'https://securetoken.googleapis.com/v1/token?key=' + os.getenv("API_KEY"),
+            data={
+                'grant_type': 'refresh_token',
+                'refresh_token': refresh_token
+            }
+        )
+        if response.status_code == 200:
+            data = response.json()
+            new_id_token = data.get('id_token')
+            new_refresh_token = data.get('refresh_token')
+            if new_id_token:
+                st.session_state.user_token = new_id_token
+                st.session_state.refresh_token = new_refresh_token
+                return new_id_token
+            else:
+                st.error("Failed to obtain new ID token from refresh response.")
+                return None
+        else:
+            st.error(f"Failed to refresh token: {response.text}")
+            return None
+    except Exception as e:
+        st.error(f"Error refreshing token: {str(e)}")
+        return None
 
 # AI Client
 class SATyrAI:
@@ -534,6 +564,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_token = user['idToken']
+                st.session_state.refresh_token = user['refreshToken']  # Store refresh token
                 username = fetch_username(email, user['idToken'])
                 st.session_state.user_name = username if username else email.split("@")[0]
                 st.session_state.chat_history = load_chat_history(email, user['idToken'])
@@ -567,6 +598,7 @@ if not st.session_state.logged_in:
                         )
                         st.session_state.temp_user_id = user['localId']
                         st.session_state.user_token = user['idToken']
+                        st.session_state.refresh_token = user['refreshToken']  # Store refresh token
                         st.session_state.temp_username = custom_username
                         safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
                         db.child("pending_users").child(safe_email).set(
@@ -610,6 +642,7 @@ if not st.session_state.logged_in:
                 st.session_state.signup_password
             )
             st.session_state.user_token = user['idToken']
+            st.session_state.refresh_token = user['refreshToken']  # Store refresh token
             user_info = requests.post(
                 'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + os.getenv("API_KEY"),
                 json={'idToken': st.session_state.user_token}
@@ -632,6 +665,7 @@ if not st.session_state.logged_in:
                         st.session_state.signup_password
                     )
                     st.session_state.user_token = final_user['idToken']
+                    st.session_state.refresh_token = final_user['refreshToken']  # Store refresh token
                     safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
                     db.child("users").child(safe_email).set(
                         {"username": st.session_state.temp_username},
@@ -771,6 +805,7 @@ if st.session_state.logged_in:
                 print(f"Logout: Failed to save chat history: {str(e)}")
             st.session_state.logged_in = False
             st.session_state.user_token = None
+            st.session_state.refresh_token = None
             st.session_state.user_email = None
             st.session_state.user_name = None
             st.session_state.chat_history = []
@@ -814,8 +849,21 @@ if st.session_state.logged_in and st.session_state.show_settings:
     st.warning("This action will permanently delete your account and all associated data. This cannot be undone.")
     if st.button("Delete My Account"):
         try:
+            # Refresh the user token before deletion
+            if st.session_state.refresh_token:
+                new_token = refresh_user_token(st.session_state.refresh_token)
+                if not new_token:
+                    st.error("Failed to refresh authentication token. Please log out and log in again to delete your account.")
+                    st.stop()
+            else:
+                st.error("No refresh token available. Please log out and log in again to delete your account.")
+                st.stop()
+
+            # Delete user data from Firebase Realtime Database
             safe_email = st.session_state.user_email.replace(".", "_").replace("@", "_")
             db.child("users").child(safe_email).remove(token=st.session_state.user_token)
+
+            # Delete Firebase Authentication account
             response = requests.post(
                 'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
                 json={'idToken': st.session_state.user_token}
@@ -823,6 +871,7 @@ if st.session_state.logged_in and st.session_state.show_settings:
             if response.status_code == 200:
                 st.session_state.logged_in = False
                 st.session_state.user_token = None
+                st.session_state.refresh_token = None
                 st.session_state.user_email = None
                 st.session_state.user_name = None
                 st.session_state.chat_history = []
@@ -832,8 +881,8 @@ if st.session_state.logged_in and st.session_state.show_settings:
                 st.session_state.pending_verification = False
                 st.session_state.temp_user_id = None
                 st.session_state.temp_username = None
-                st.rerun()
                 st.success("Account deleted successfully. You can now sign up as a new user.")
+                st.rerun()
             else:
                 st.error(f"Failed to delete account: {response.text}")
         except Exception as e:

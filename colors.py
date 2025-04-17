@@ -11,7 +11,7 @@ COLORS = {
     "input_background": "#17233A",  # Muted blue-gray
 
     # Text Colors
-    "text_color": "#E0D7B0",  # Golden white
+    "text_color": "#0d52f9",  # Golden white
     "visit_counter_text": "#FFFFFF",  # White for readability
 
     # UI Elements

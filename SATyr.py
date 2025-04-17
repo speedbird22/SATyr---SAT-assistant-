@@ -7,49 +7,98 @@ from dotenv import load_dotenv
 import os
 import pyrebase
 import requests
+import uuid
 
-# Define color schemes inline
-COLORS = {
-    'splash_screen': '#D8AA2A',  # Warm gold
-    'app_background': '#1A1A2E',  # Dark navy matching the image background
-    'sidebar_background': '#2A2A4E',  # Slightly brighter navy
-    'input_background': '#B2984A',  # Dark shade of gold
-    'text_color': '#FFFFFF',
-    'visit_counter_background': '#D8AA2A80',  # Translucent gold (50% opacity)
-    'visit_counter_text': '#FFFFFF',  # White
-    'floating_message_background': '#B2984A',  # Dark shade of gold
-    'button_form_default': '#68E636',  # Specified green shade
-    'button_form_hover': '#50B62B',  # Slightly darker green
-    'button_form_active': '#388E1F',  # Even darker green
-    'button_sidebar_default': '#007AFF',  # Blue matching user buttons
-    'button_sidebar_hover': '#0066CC',  # Slightly darker blue
-    'button_sidebar_active': '#0055B3',  # Even darker blue
-    'button_history_default': '#2A2A4E',  # Match sidebar background
-    'button_history_hover': '#3A3A5E',  # Slightly lighter
-    'button_history_active': '#1A1A3E',  # Slightly darker
-    'user_message': '#007AFF',  # Blue matching user buttons
-    'ai_message': '#68E636'  # Specified green shade
-}
-
-LIGHT_MODE_COLORS = {
-    'light_app_background': '#FFFFFF',  # White background
-    'light_sidebar_background': '#F5F5F5',  # Soft light gray
-    'light_input_background': '#E0E0E0',  # Light gray
-    'light_text_color': '#333333',  # Dark gray for contrast
-    'light_visit_counter_background': '#E0E0E0',  # Light gray
-    'light_visit_counter_text': '#333333',  # Dark gray
-    'light_floating_message_background': '#E0E0E0',  # Light gray
-    'light_button_form_default': '#FFC107',  # Soft amber, comforting
-    'light_button_form_hover': '#FFA000',
-    'light_button_form_active': '#FF8F00',
-    'light_button_sidebar_default': '#E57373',  # Soft red, comforting
-    'light_button_sidebar_hover': '#EF5350',
-    'light_button_sidebar_active': '#F44336',
-    'light_button_history_default': '#E0E0E0',  # Neutral gray
-    'light_button_history_hover': '#D0D0D0',
-    'light_button_history_active': '#C0C0C0',
-    'light_user_message': '#E57373',  # Soft red, matching light_button_sidebar_default
-    'light_ai_message': '#FFC107'  # Soft amber, matching light_button_form_default
+# Define theme color schemes
+THEMES = {
+    'satyr_stock': {
+        'name': 'SATyr Stock Theme',
+        'splash_screen': '#D8AA2A',  # Warm gold
+        'app_background': '#1A1A2E',  # Dark navy
+        'sidebar_background': '#2A2A4E',  # Slightly brighter navy
+        'input_background': '#B2984A',  # Dark shade of gold
+        'text_color': '#FFFFFF',
+        'visit_counter_background': '#D8AA2A80',  # Translucent gold
+        'visit_counter_text': '#FFFFFF',
+        'floating_message_background': '#B2984A',  # Dark shade of gold
+        'button_form_default': '#68E636',  # Green
+        'button_form_hover': '#50B62B',
+        'button_form_active': '#388E1F',
+        'button_sidebar_default': '#007AFF',  # Blue
+        'button_sidebar_hover': '#0066CC',
+        'button_sidebar_active': '#0055B3',
+        'button_history_default': '#2A2A4E',  # Match sidebar
+        'button_history_hover': '#3A3A5E',
+        'button_history_active': '#1A1A3E',
+        'user_message': '#007AFF',  # Blue
+        'ai_message': '#68E636'  # Green
+    },
+    'floral': {
+        'name': 'Floral Theme',
+        'splash_screen': '#FFB7C5',  # Cherry blossom pink
+        'app_background': '#FCE4EC',  # Light pink
+        'sidebar_background': '#F8BBD0',  # Soft pink
+        'input_background': '#D81B60',  # Deep pink
+        'text_color': '#4A2E2A',  # Dark brown for contrast
+        'visit_counter_background': '#FFCDD280',  # Translucent pink
+        'visit_counter_text': '#4A2E2A',
+        'floating_message_background': '#D81B60',  # Deep pink
+        'button_form_default': '#F06292',  # Rose pink
+        'button_form_hover': '#EC407A',
+        'button_form_active': '#D81B60',
+        'button_sidebar_default': '#AB47BC',  # Lavender
+        'button_sidebar_hover': '#9C27B0',
+        'button_sidebar_active': '#8E24AA',
+        'button_history_default': '#F8BBD0',  # Soft pink
+        'button_history_hover': '#F48FB1',
+        'button_history_active': '#F06292',
+        'user_message': '#AB47BC',  # Lavender
+        'ai_message': '#F06292'  # Rose pink
+    },
+    'aqua': {
+        'name': 'Aqua Theme',
+        'splash_screen': '#4FC3F7',  # Sky blue
+        'app_background': '#E0F7FA',  # Light cyan
+        'sidebar_background': '#B2EBF2',  # Soft cyan
+        'input_background': '#0288D1',  # Deep blue
+        'text_color': '#01579B',  # Dark blue
+        'visit_counter_background': '#4FC3F780',  # Translucent sky blue
+        'visit_counter_text': '#01579B',
+        'floating_message_background': '#0288D1',  # Deep blue
+        'button_form_default': '#29B6F6',  # Light blue
+        'button_form_hover': '#039BE5',
+        'button_form_active': '#0288D1',
+        'button_sidebar_default': '#26A69A',  # Teal
+        'button_sidebar_hover': '#009688',
+        'button_sidebar_active': '#00897B',
+        'button_history_default': '#B2EBF2',  # Soft cyan
+        'button_history_hover': '#80DEEA',
+        'button_history_active': '#4FC3F7',
+        'user_message': '#26A69A',  # Teal
+        'ai_message': '#29B6F6'  # Light blue
+    },
+    'golden': {
+        'name': 'Golden Theme',
+        'splash_screen': '#FFD700',  # Gold
+        'app_background': '#FFF8E1',  # Light gold
+        'sidebar_background': '#FFECB3',  # Soft gold
+        'input_background': '#D4A017',  # Deep gold
+        'text_color': '#3E2723',  # Dark brown
+        'visit_counter_background': '#FFD70080',  # Translucent gold
+        'visit_counter_text': '#3E2723',
+        'floating_message_background': '#D4A017',  # Deep gold
+        'button_form_default': '#FFCA28',  # Amber
+        'button_form_hover': '#FFB300',
+        'button_form_active': '#FFA000',
+        'button_sidebar_default': '#FBC02D',  # Yellow gold
+        'button_sidebar_hover': '#F9A825',
+        'button_sidebar_active': '#F57F17',
+        'button_history_default': '#FFECB3',  # Soft gold
+        'button_history_hover': '#FFE082',
+        'button_history_active': '#FFCA28',
+        'user_message': '#FBC02D',  # Yellow gold
+        'ai_message': '#FFCA28'  # Amber
+    }
 }
 
 # Set page config
@@ -60,8 +109,8 @@ if "splash_shown" not in st.session_state:
     st.session_state.splash_shown = False
 if "show_settings" not in st.session_state:
     st.session_state.show_settings = False
-if "light_mode" not in st.session_state:
-    st.session_state.light_mode = False
+if "theme" not in st.session_state:
+    st.session_state.theme = 'satyr_stock'
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "chatbot" not in st.session_state:
@@ -93,6 +142,9 @@ if "temp_user_id" not in st.session_state:
 if "temp_username" not in st.session_state:
     st.session_state.temp_username = None
 
+# Get current theme colors
+CURRENT_THEME = THEMES[st.session_state.theme]
+
 # Display splash screen
 if not st.session_state.splash_shown:
     with st.container():
@@ -105,7 +157,7 @@ if not st.session_state.splash_shown:
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background-color: {COLORS['splash_screen']};
+                background-color: {CURRENT_THEME['splash_screen']};
                 z-index: 999999;
                 animation: fadeOut 0.25s ease-out 0.75s forwards;
             }}
@@ -236,23 +288,23 @@ st.markdown(
     f"""
     <style>
     body {{
-        background-color: {COLORS['app_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_app_background']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        background-color: {CURRENT_THEME['app_background']};
+        color: {CURRENT_THEME['text_color']};
     }}
     .sidebar .sidebar-content {{
-        background-color: {COLORS['sidebar_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_sidebar_background']};
+        background-color: {CURRENT_THEME['sidebar_background']};
     }}
     .block-container {{
         padding: 2rem 2rem 2rem;
     }}
     input, textarea {{
-        background-color: {COLORS['input_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_input_background']} !important;
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']} !important;
+        background-color: {CURRENT_THEME['input_background']} !important;
+        color: {CURRENT_THEME['text_color']} !important;
     }}
     #visit-counter {{
         position: relative;
-        background-color: {COLORS['visit_counter_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_visit_counter_background']};
-        color: {COLORS['visit_counter_text'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_visit_counter_text']};
+        background-color: {CURRENT_THEME['visit_counter_background']};
+        color: {CURRENT_THEME['visit_counter_text']};
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 14px;
@@ -265,8 +317,8 @@ st.markdown(
         bottom: 10px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: {COLORS['floating_message_background'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_floating_message_background']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        background-color: {CURRENT_THEME['floating_message_background']};
+        color: {CURRENT_THEME['text_color']};
         padding: 10px;
         border-radius: 5px;
         display: none;
@@ -284,46 +336,45 @@ st.markdown(
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button,
     form .stButton > button {{
-        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
-    }}
+        background-color: {CURRENT_THEME['button_form_default']};
+        color}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
     form .stButton > button:hover {{
-        background-color: {COLORS['button_form_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_hover']};
+        background-color: {CURRENT_THEME['button_form_hover']};
         transform: scale(1.05);
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:active,
     form .stButton > button:active {{
-        background-color: {COLORS['button_form_active'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_active']};
+        background-color: {CURRENT_THEME['button_form_active']};
         transform: scale(0.98);
     }}
     .stSidebar .stButton > button:not([id*="history"]),
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
-        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        background-color: {CURRENT_THEME['button_sidebar_default']};
+        color: {CURRENT_THEME['text_color']};
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_hover']};
+        background-color: {CURRENT_THEME['button_sidebar_hover']};
         transform: scale(1.05);
     }}
     .stSidebar .stButton > button:not([id*="history"]):active,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {{
-        background-color: {COLORS['button_sidebar_active'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_active']};
+        background-color: {CURRENT_THEME['button_sidebar_active']};
         transform: scale(0.98);
     }}
     .stSidebar .stButton[id*="history"] > button {{
-        background-color: {COLORS['button_history_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_default']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        background-color: {CURRENT_THEME['button_history_default']};
+        color: {CURRENT_THEME['text_color']};
         font-size: 13px;
         padding: 6px 12px;
     }}
     .stSidebar .stButton[id*="history"] > button:hover {{
-        background-color: {COLORS['button_history_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_hover']};
+        background-color: {CURRENT_THEME['button_history_hover']};
         transform: scale(1.02);
     }}
     .stSidebar .stButton[id*="history"] > button:active {{
-        background-color: {COLORS['button_history_active'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_history_active']};
+        background-color: {CURRENT_THEME['button_history_active']};
         transform: scale(0.98);
     }}
     .logo-container {{
@@ -340,8 +391,8 @@ st.markdown(
         image-rendering: crisp-edges;
     }}
     .user-bubble {{
-        background-color: {COLORS['user_message'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_user_message']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        background-color: {CURRENT_THEME['user_message']};
+        color: {CURRENT_THEME['text_color']};
         padding: 10px 15px;
         border-radius: 15px 15px 0 15px;
         display: inline-block;
@@ -349,13 +400,18 @@ st.markdown(
         margin: 5px 0;
     }}
     .ai-bubble {{
-        background-color: {COLORS['ai_message'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_ai_message']};
-        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
+        background-color: {CURRENT_THEME['ai_message']};
+        color: {CURRENT_THEME['text_color']};
         padding: 10px 15px;
         border-radius: 15px 15px 15px 0;
         display: inline-block;
         max-width: 70%;
         margin: 5px 0;
+    }}
+    .stSelectbox > div > div {{
+        background-color: {CURRENT_THEME['input_background']};
+        color: {CURRENT_THEME['text_color']};
+        border-radius: 8px;
     }}
     </style>
     """,
@@ -648,7 +704,7 @@ if st.session_state.logged_in:
         with col1:
             st.image("logo.jpg", clamp=True, output_format="auto")
         with col2:
-            st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
+            st.markdown('<h1 class=" sidebar-title">SATyr</h1>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(
             """
@@ -783,10 +839,12 @@ if st.session_state.logged_in and st.session_state.show_settings:
             st.error(f"Error deleting account: {str(e)}")
 
     st.subheader("Theme")
-    light_mode = st.checkbox("Enable Light Mode", value=st.session_state.light_mode)
+    theme_options = {theme_id: theme_data['name'] for theme_id, theme_data in THEMES.items()}
+    selected_theme = st.selectbox("Select Theme", options=list(theme_options.keys()), format_func=lambda x: theme_options[x], index=list(theme_options.keys()).index(st.session_state.theme))
+    
     if st.button("Apply Theme"):
-        st.session_state.light_mode = light_mode
-        st.success("Theme applied! Returning to chat...")
+        st.session_state.theme = selected_theme
+        st.success(f"{theme_options[selected_theme]} applied! Returning to chat...")
         st.session_state.show_settings = False
         st.rerun()
 

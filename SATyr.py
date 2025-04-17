@@ -120,6 +120,10 @@ class SATyrAI:
             response = self.conn.getresponse()
             response_data = response.read().decode()
 
+            # Debug: Print response data to diagnose issues
+            print(f"API Response Status: {response.status}, Reason: {response.reason}")
+            print(f"API Response Data: {response_data}")
+
             if response.status == 200:
                 try:
                     data = json.loads(response_data)
@@ -483,7 +487,7 @@ if not st.session_state.logged_in:
                             st.session_state.pending_verification = True
                         else:
                             st.error(f"Failed to send verification email: {verification_response.text}")
-                    except Exception as e | TypeError:
+                    except Exception as e:
                         error_msg = str(e)
                         if "EMAIL_EXISTS" in error_msg:
                             st.error("This email is already registered. Please log in or use a different email.")

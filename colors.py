@@ -8,7 +8,7 @@ COLORS = {
     # App Backgrounds
     "app_background": "#1E2A44",  # Dark blue
     "sidebar_background": "#17233A",  # Slightly lighter dark blue
-    "input_background": "#2A3752",  # Muted blue-gray
+    "input_background": "#0d52f9",  # Muted blue-gray
 
     # Text Colors
     "text_color": "#E0D7B0",  # Golden white

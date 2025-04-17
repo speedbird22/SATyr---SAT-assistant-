@@ -6,33 +6,33 @@ COLORS = {
     "splash_screen": "#EFAE2D",  # Yellow from logo
 
     # App Backgrounds
-    "app_background": "#1E2A44",  # Dark blue
-    "sidebar_background": "#17233A",  # Slightly lighter dark blue
-    "input_background": "#2A3752",  # Muted blue-gray
+    "app_background": "#FFFFFF",  # Dark blue
+    "sidebar_background": "#FFFFFF",  # Slightly lighter dark blue
+    "input_background": "#FFFFFF",  # Muted blue-gray
 
     # Text Colors
-    "text_color": "#E0D7B0",  # Golden white
+    "text_color": "#FFFFFF",  # Golden white
     "visit_counter_text": "#FFFFFF",  # White for readability
 
     # UI Elements
-    "visit_counter_background": "#4A6B8A",  # Soft blue
-    "heart_icon": "#EFAE2D",  # Yellow heart to match logo
+    "visit_counter_background": "#FFFFFF",  # Soft blue
+    "heart_icon": "#FFFFFF",  # Yellow heart to match logo
     "floating_message_background": "rgba(30, 42, 68, 0.8)",  # Semi-transparent dark blue
 
     # Button Colors (Login/Signup and Form Buttons)
-    "button_form_default": "#EFAE2D",  # Yellow
-    "button_form_hover": "#D49F26",  # Slightly darker yellow
-    "button_form_active": "#B7871E",  # Even darker yellow
+    "button_form_default": "#FFFFFF",  # Yellow
+    "button_form_hover": "#FFFFFF",  # Slightly darker yellow
+    "button_form_active": "#FFFFFF",  # Even darker yellow
 
     # Sidebar Buttons (New Session, Logout, non-history)
-    "button_sidebar_default": "#4A6B8A",  # Soft blue
-    "button_sidebar_hover": "#3D5872",  # Darker blue
-    "button_sidebar_active": "#2F4456",  # Darkest blue
+    "button_sidebar_default": "#FFFFFF",  # Soft blue
+    "button_sidebar_hover": "#FFFFFF",  # Darker blue
+    "button_sidebar_active": "#FFFFFF",  # Darkest blue
 
     # History Buttons (Sidebar)
-    "button_history_default": "#2A3752",  # Muted blue-gray
-    "button_history_hover": "#23304A",  # Slightly darker
-    "button_history_active": "#1C2740",  # Darkest
+    "button_history_default": "#FFFFFF",  # Muted blue-gray
+    "button_history_hover": "#FFFFFF",  # Slightly darker
+    "button_history_active": "#FFFFFF",  # Darkest
 
     # Message Bubbles
     "user_message_background": "#0000FF",  # Blue

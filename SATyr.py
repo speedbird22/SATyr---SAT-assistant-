@@ -95,7 +95,135 @@ THEMES = {
         'button_sidebar_active': '#F57F17',
         'button_history_default': '#FFECB3',  # Soft gold
         'button_history_hover': '#FFE082',
-        'button_history_active': '#    st.session_state.chatbot = SATyrAI()
+        'button_history_active': '#FFCA28',
+        'user_message': '#FBC02D',  # Yellow gold
+        'ai_message': '#FFCA28'  # Amber
+    }
+}
+
+# Set page config
+st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
+
+# Initialize session state
+if "splash_shown" not in st.session_state:
+    st.session_state.splash_shown = False
+if "show_settings" not in st.session_state:
+    st.session_state.show_settings = False
+if "theme" not in st.session_state:
+    st.session_state.theme = 'satyr_stock'
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "chatbot" not in st.session_state:
+    st.session_state.chatbot = None
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "user_name" not in st.session_state:
+    st.session_state.user_name = None
+if "selected_conversation_index" not in st.session_state:
+    st.session_state.selected_conversation_index = None
+if "show_double_click_message" not in st.session_state:
+    st.session_state.show_double_click_message = False
+if "user_email" not in st.session_state:
+    st.session_state.user_email = None
+if "user_token" not in st.session_state:
+    st.session_state.user_token = None
+if "visit_count" not in st.session_state:
+    st.session_state.visit_count = 0
+if "signup_clicked" not in st.session_state:
+    st.session_state.signup_clicked = False
+if "signup_email" not in st.session_state:
+    st.session_state.signup_email = ""
+if "signup_password" not in st.session_state:
+    st.session_state.signup_password = ""
+if "pending_verification" not in st.session_state:
+    st.session_state.pending_verification = False
+if "temp_user_id" not in st.session_state:
+    st.session_state.temp_user_id = None
+if "temp_username" not in st.session_state:
+    st.session_state.temp_username = None
+
+# Get current theme colors
+CURRENT_THEME = THEMES[st.session_state.theme]
+
+# Display splash screen
+if not st.session_state.splash_shown:
+    with st.container():
+        st.markdown(
+            f"""
+            <style>
+            #splash-screen {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background-color: {CURRENT_THEME['splash_screen']};
+                z-index: 999999;
+                animation: fadeOut 0.25s ease-out 0.75s forwards;
+            }}
+            @keyframes fadeOut {{
+                from {{ opacity: 1; }}
+                to {{ opacity: 0; visibility: hidden; }}
+            }}
+            </style>
+            <div id="splash-screen"></div>
+            """,
+            unsafe_allow_html=True
+        )
+    time.sleep(1)
+    st.session_state.splash_shown = True
+    st.rerun()
+
+# Load environment variables
+load_dotenv()
+
+# Firebase configuration
+firebase_config = {
+    "apiKey": os.getenv("API_KEY", ""),
+    "authDomain": os.getenv("AUTH_DOMAIN", ""),
+    "projectId": os.getenv("PROJECT_ID", ""),
+    "storageBucket": os.getenv("STORAGE_BUCKET", ""),
+    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID", ""),
+    "appId": os.getenv("APP_ID", ""),
+    "measurementId": os.getenv("MEASUREMENT_ID", ""),
+    "databaseURL": os.getenv("DATABASE_URL", "")
+}
+
+# Initialize Firebase
+try:
+    firebase = pyrebase.initialize_app(firebase_config)
+    auth = firebase.auth()
+    db = firebase.database()
+except Exception as e:
+    st.error(f"Failed to initialize Firebase: {str(e)}")
+    st.stop()
+
+# AI Client
+class SATyrAI:
+    def __init__(self):
+        self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"
+        self.domain = "km-pfrdhsi"
+        self.base_url = "api.personal.ai"
+        self.session_id = None
+        self.user_name = None
+        self.context = None
+        self.conn = http.client.HTTPSConnection(self.base_url, timeout=30)
+
+    def __del__(self):
+        if hasattr(self, 'conn') and self.conn:
+            self.conn.close()
+
+    def _create_payload(self, text: str, context: Optional[str] = None) -> Dict:
+        payload = {
+            "Text": text,
+            "DomainName": self.domain,
+            "UserName": self.user_name or "Guest"
+        }
+        if context:
+            payload["Context"] = context
+        if self.session_id:
+            payload["SessionId"] = self.session_id
+        return = self.session_state.chatbot = SATyrAI()
 
 # Custom styling
 st.markdown(
@@ -525,7 +653,7 @@ if st.session_state.logged_in:
             """
             <style>
             [data-testid="stImage"] img {
-                max-width: 50px;
+                maxениях
                 height: auto;
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: -moz-crisp-edges;
@@ -691,20 +819,34 @@ if st.session_state.logged_in and not st.session_state.show_settings:
                         st.rerun()
 
         if st.session_state.selected_conversation_index is not None:
-            idx =CHEMES[st.session_state.theme]
+            idx = st.session_state.selected_conversation_index
+            if 0 <= idx < len(st.session_state.chat_history):
+                thread = st.session_state.chat_history[idx]
+                user_msg, ai_msg = thread["initial"]
+                st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
 
-# Display splash screen
-if not st.session_state.splash_shown:
-    with st.container():
-        st.markdown(
-            f"""
-            <style>
-            #splash-screen {{
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background-color: {CURRENT_THEME['splash_screen']};
-                z-index: 999999;
-                animation: fadeOut 0
+                for follow_up_user_msg, follow_up_ai_msg in thread.get("follow_ups", []):
+                    st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="ai-bubble">🤖 SATyr: {follow_up_ai_msg}</div>', unsafe_allow_html=True)
+
+            with st.form(f"reply_form_{idx}", clear_on_submit=True):
+                follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
+                reply_submitted = st.form_submit_button("Reply")
+
+                if reply_submitted and follow_up_input:
+                    thread = st.session_state.chat_history[idx]
+                    context_parts = [f"User: {thread['initial'][0]}\nSATyr: {thread['initial'][1]}"]
+                    context_parts.extend([f"User: {u}\nSATyr: {a}" for u, a in thread.get("follow_ups", [])])
+                    context = "\n".join(context_parts)
+                    ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
+                    if ai_response.startswith("[Error]"):
+                        st.error(f"Failed to get follow-up response: {ai_response}")
+                    else:
+                        if "follow_ups" not in st.session_state.chat_history[idx]:
+                            st.session_state.chat_history[idx]["follow_ups"] = []
+                        st.session_state.chat_history[idx]["follow_ups"].append((follow_up_input, ai_response))
+                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
+                        st.rerun()
+
+            st.divider()

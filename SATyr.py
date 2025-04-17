@@ -117,10 +117,13 @@ class SATyrAI:
 
             self._connect()
             self.conn.request("POST", "/v1/message", payload, headers)
-            response = self.conn.getresponse()
+            response = self.conn.getresponse()  # Get the response
+            if response is None:
+                return "[Error] Failed to get response from server"
+
             response_data = response.read().decode()
 
-            if response.status_code == 200:
+            if response.status == 200:  # Use response.status instead of response.status_code
                 try:
                     data = json.loads(response_data)
                     self.session_id = data.get("SessionId", self.session_id)
@@ -128,12 +131,14 @@ class SATyrAI:
                     return self.context
                 except json.JSONDecodeError:
                     return f"[Error] Invalid JSON response: {response_data}"
-            return f"[Error] API request failed: {response.status_code} - {response.reason}"
+            return f"[Error] API request failed: {response.status} - {response.reason}"
 
         except Exception as e:
             return f"[Error] Network or API error: {str(e)}"
         finally:
-            self._connect()
+            if self.conn:
+                self.conn.close()
+                self.conn = None
 
     def reset(self):
         self.session_id = None

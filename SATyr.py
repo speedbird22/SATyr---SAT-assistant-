@@ -355,7 +355,7 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
     if not st.session_state.logged_in:
         return []
     try:
-        safe_email = email.replace(".", "_.").replace("@", "_")
+        safe_email = email.replace(".", "_").replace("@", "_")
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
         if not chat_data:
             return []
@@ -376,7 +376,12 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
                         })
         return valid_threads
     except Exception as e:
-        st.warning(f"Failed to load chat history: {str(e)}")
+        st.error(f"Failed to load chat history: {str(e)}\n"
+                 "Possible causes:\n"
+                 "- Invalid Firebase token or permissions\n"
+                 "- Incorrect database path\n"
+                 "- Network connectivity issue\n"
+                 "Please check your Firebase configuration and try again.")
         return []
 
 # --- Save chat history ---
@@ -385,7 +390,20 @@ def save_chat_history(email: str, chat_history: List[Dict], token: str):
         return
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
+        # Validate chat_history format before saving
+        validated_history = []
+        for thread in chat_history:
+            if not isinstance(thread, dict) or "initial" not in thread:
+                continue
+            initial = thread.get("initial")
+            if not isinstance(initial, (list, tuple)) or len(initial) != 2 or not all(isinstance(s, str) for s in initial):
+                continue
+            follow_ups = [
+                f for f in thread.get("follow_ups", [])
+                if isinstance(f, (list, tuple)) and len(f) == 2 and all(isinstance(s, str) for s in f)
+            ]
+            validated_history.append({"initial": tuple(initial), "follow_ups": follow_ups})
+        db.child("users").child(safe_email).child("chat_history").set(validated_history, token)
     except Exception as e:
         st.warning(f"Failed to save chat history: {str(e)}")
 
@@ -436,7 +454,12 @@ if not st.session_state.logged_in:
                 st.session_state.user_token = user['idToken']
                 username = fetch_username(email, user['idToken'])
                 st.session_state.user_name = username if username else email.split("@")[0]
-                st.session_state.chat_history = load_chat_history(email, user['idToken'])
+                try:
+                    st.session_state.chat_history = load_chat_history(email, user['idToken'])
+                except Exception as e:
+                    st.error(f"Error loading chats: {str(e)}\n"
+                             "You can still proceed, but chat history may be unavailable.")
+                    st.session_state.chat_history = []
                 update_visit_counter()
                 st.success(f"Logged in as {st.session_state.user_name}")
                 st.session_state.show_double_click_message = True
@@ -648,7 +671,7 @@ if st.session_state.logged_in:
 
         if st.session_state.chat_history:
             for idx, thread in enumerate(st.session_state.chat_history):
-                if not isinstance(thread, dict) or "initial" not in thread:
+                if not isinstance(thread, dict) or "initial" in thread:
                     continue
                 initial = thread.get("initial")
                 if not isinstance(initial, (list, tuple)) or len(initial) < 1 or not isinstance(initial[0], str):

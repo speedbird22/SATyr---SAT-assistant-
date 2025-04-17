@@ -38,8 +38,8 @@ COLORS = {
 # Light Mode Colors (Editable by user later)
 LIGHT_MODE_COLORS = {
     # App Backgrounds
-    "light_app_background": "#F9F9F9",  # Soft white
-    "light_sidebar_background": "#EDEDED",  # Very light gray
+    "light_app_background": "#F5F1E9",  # Light beige/off-white from expected design
+    "light_sidebar_background": "#EDE4D7",  # Slightly darker beige
     "light_input_background": "#D3D3D3",  # Light gray
 
     # Text Colors
@@ -48,7 +48,7 @@ LIGHT_MODE_COLORS = {
 
     # UI Elements
     "light_visit_counter_background": "#B0B0B0",  # Medium gray
-    "light_floating_message_background": "#D3D3D3",  # Light gray
+    "light_floating_message_background": "#E0DCD5",  # Soft beige
 
     # Button Colors (Login/Signup and Form Buttons)
     "light_button_form_default": "#1E2A44",  # Dark blue

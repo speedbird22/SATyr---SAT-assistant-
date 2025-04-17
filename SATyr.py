@@ -11,24 +11,24 @@ import requests
 # Define color schemes inline
 COLORS = {
     'splash_screen': '#D8AA2A',  # Warm gold
-    'app_background': '#000099',  # Navy blue
-    'sidebar_background': '#1C2526',  # Slightly brighter shade of navy blue
+    'app_background': '#1A1A2E',  # Dark navy matching the image background
+    'sidebar_background': '#2A2A4E',  # Slightly brighter navy
     'input_background': '#B2984A',  # Dark shade of gold
     'text_color': '#FFFFFF',
-    'visit_counter_background': '#D8AA2A80',  # Translucent gold (with 50% opacity)
+    'visit_counter_background': '#D8AA2A80',  # Translucent gold (50% opacity)
     'visit_counter_text': '#FFFFFF',  # White
     'floating_message_background': '#B2984A',  # Dark shade of gold
-    'button_form_default': '#34C759',  # Exact green from SMS bubble in image
-    'button_form_hover': '#2EB74E',  # Slightly darker green
-    'button_form_active': '#28A745',  # Even darker green
-    'button_sidebar_default': '#007AFF',  # Exact blue from iMessage bubble in image
+    'button_form_default': '#39FF14',  # Bright green matching SATyr's messages
+    'button_form_hover': '#32CC11',  # Slightly darker green
+    'button_form_active': '#2B990E',  # Even darker green
+    'button_sidebar_default': '#007AFF',  # Blue matching user buttons
     'button_sidebar_hover': '#0066CC',  # Slightly darker blue
     'button_sidebar_active': '#0055B3',  # Even darker blue
-    'button_history_default': '#2A2A2A',
-    'button_history_hover': '#3A3A3A',
-    'button_history_active': '#1A1A1A',
-    'user_message': '#007AFF',  # Exact blue from iMessage bubble
-    'ai_message': '#34C759'  # Exact green from SMS bubble
+    'button_history_default': '#2A2A4E',  # Match sidebar background
+    'button_history_hover': '#3A3A5E',  # Slightly lighter
+    'button_history_active': '#1A1A3E',  # Slightly darker
+    'user_message': '#007AFF',  # Blue matching user buttons
+    'ai_message': '#39FF14'  # Bright green matching SATyr's messages
 }
 
 LIGHT_MODE_COLORS = {

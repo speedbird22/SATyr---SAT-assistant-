@@ -43,7 +43,7 @@ COLORS = {
 LIGHT_MODE_COLORS = {
     # App Backgrounds
     "light_app_background": "#FFFFFF",  # White
-    "light_sidebar_background": "#FFF5E6",  # Light golden
+    "light_sidebar_background": "#FFE8B3",  # Darker light golden
     "light_input_background": "#E6F0FF",  # Light blue
 
     # Text Colors
@@ -52,7 +52,7 @@ LIGHT_MODE_COLORS = {
 
     # UI Elements
     "light_visit_counter_background": "#FF6666",  # Soft red
-    "light_floating_message_background": "#EFAE2D",  # Golden
+    "light_floating_message_background": "#D49F26",  # Darker golden
 
     # Button Colors (Login/Signup and Form Buttons)
     "light_button_form_default": "#FF3333",  # Bright red
@@ -60,9 +60,9 @@ LIGHT_MODE_COLORS = {
     "light_button_form_active": "#991F1F",  # Darkest red
 
     # Sidebar Buttons (New Session, Logout, non-history)
-    "light_button_sidebar_default": "#EFAE2D",  # Golden
-    "light_button_sidebar_hover": "#D49F26",  # Darker golden
-    "light_button_sidebar_active": "#B7871E",  # Darkest golden
+    "light_button_sidebar_default": "#D49F26",  # Darker golden
+    "light_button_sidebar_hover": "#B7871E",  # Even darker golden
+    "light_button_sidebar_active": "#9A7018",  # Darkest golden
 
     # History Buttons (Sidebar)
     "light_button_history_default": "#4A6B8A",  # Soft blue
@@ -71,5 +71,5 @@ LIGHT_MODE_COLORS = {
 
     # Message Bubbles
     "light_user_message_background": "#FF0000",  # Red
-    "light_ai_message_background": "#EFAE2D",  # Golden
+    "light_ai_message_background": "#D49F26",  # Darker golden
 }

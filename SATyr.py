@@ -1,3 +1,6 @@
+# Debug: Confirm code version
+print("Running SATyr app.py - Version with status fix applied (2025-04-17)")
+
 import streamlit as st
 import http.client
 import json
@@ -120,7 +123,7 @@ class SATyrAI:
             response = self.conn.getresponse()
             response_data = response.read().decode()
 
-            # Debug: Print response data to diagnose issues
+            # Debug: Log response details
             print(f"API Response Status: {response.status}, Reason: {response.reason}")
             print(f"API Response Data: {response_data}")
 
@@ -523,7 +526,7 @@ if not st.session_state.logged_in:
                         )
                         if delete_response.status_code != 200:
                             st.error(f"Failed to delete temporary user: {delete_response.text}")
-                            st.stop()  # Replace return with st.stop()
+                            st.stop()
                     # Create final user with the same email and password
                     final_user = auth.create_user_with_email_and_password(
                         st.session_state.signup_email,

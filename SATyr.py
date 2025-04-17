@@ -83,7 +83,6 @@ class SATyrAI:
         self.user_name = None
         self.context = None
         self.conn = None
-        self._connect()
 
     def _connect(self):
         if self.conn:
@@ -117,14 +116,14 @@ class SATyrAI:
 
             self._connect()
             self.conn.request("POST", "/v1/message", payload, headers)
-            response = self.conn.getresponse()  # Get the response
+            response = self.conn.getresponse()
             if response is None:
                 return "[Error] Failed to get response from server"
 
-            # Read the response
+            # Debugging: Print response object details
+            st.write(f"Response type: {type(response)}, Attributes: {dir(response)}")
             response_data = response.read().decode()
 
-            # Check the status
             if response.status == 200:
                 try:
                     data = json.loads(response_data)

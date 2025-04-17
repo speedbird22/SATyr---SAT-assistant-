@@ -223,7 +223,65 @@ class SATyrAI:
             payload["Context"] = context
         if self.session_id:
             payload["SessionId"] = self.session_id
-        return = self.session_state.chatbot = SATyrAI()
+        return payload
+
+    def _log_api_error(self, status: int, reason: str, response_body: str) -> str:
+        error_details = (
+            f"API Error: {status} {reason}\n"
+            f"Response: {response_body[:1000]}\n"
+            f"Domain: {self.domain}\n"
+            f"API Key (first 4 chars): {self.api_key[:4]}...\n"
+            "Troubleshooting:\n"
+            "- Check if API key is valid and not expired.\n"
+            "- Verify domain is correct for your Personal AI account.\n"
+            "- Ensure network connectivity and no firewall is blocking api.personal.ai.\n"
+            "- Check for rate limits (HTTP 429) or server issues (HTTP 500)."
+        )
+        return error_details
+
+    def send_request(self, text: str, context: Optional[str] = None) -> str:
+        if not text or not isinstance(text, str) or not text.strip():
+            return "[Error] Invalid or empty input text"
+
+        try:
+            payload = json.dumps(self._create_payload(text, context))
+            headers = {
+                'Content-Type': 'application/json',
+                'x-api-key': self.api_key
+            }
+
+            self.conn.request("POST", "/v1/message", payload, headers)
+            response = self.conn.getresponse()
+            response_data = response.read().decode()
+
+            if response.status == 200:
+                try:
+                    data = json.loads(response_data)
+                    self.session_id = data.get("SessionId", self.session_id)
+                    self.context = data.get("ai_message", "[Error] No AI message in response")
+                    return self.context
+                except json.JSONDecodeError as e:
+                    st.error(f"Invalid JSON response: {response_data[:100]}")
+                    return f"[Error] Invalid JSON response: {str(e)}"
+            else:
+                error_details = self._log_api_error(response.status, response.reason, response_data)
+                st.error(error_details)
+                return f"[Error] API request failed: {response.status} - {response.reason}"
+
+        except http.client.HTTPException as e:
+            st.error(f"HTTP error occurred: {str(e)}")
+            return f"[Error] HTTP error: {str(e)}"
+        except Exception as e:
+            st.error(f"Unexpected error: {str(e)}")
+            return f"[Error] Network or API error: {str(e)}"
+
+    def reset(self):
+        self.session_id = None
+        self.context = None
+
+# Initialize chatbot
+if st.session_state.chatbot is None:
+    st.session_state.chatbot = SATyrAI()
 
 # Custom styling
 st.markdown(
@@ -653,7 +711,7 @@ if st.session_state.logged_in:
             """
             <style>
             [data-testid="stImage"] img {
-                maxениях
+                max-width: 50px;
                 height: auto;
                 image-rendering: -webkit-optimize-contrast;
                 image-rendering: -moz-crisp-edges;

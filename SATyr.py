@@ -120,7 +120,7 @@ class SATyrAI:
             response = self.conn.getresponse()
             response_data = response.read().decode()
 
-            if response.status_code == 200:
+            if response.status == 200:
                 try:
                     data = json.loads(response_data)
                     self.session_id = data.get("SessionId", self.session_id)
@@ -128,7 +128,7 @@ class SATyrAI:
                     return self.context
                 except json.JSONDecodeError:
                     return f"[Error] Invalid JSON response: {response_data}"
-            return f"[Error] API request failed: {response.status_code} - {response.reason}"
+            return f"[Error] API request failed: {response.status} - {response.reason}"
 
         except Exception as e:
             return f"[Error] Network or API error: {str(e)}"
@@ -483,7 +483,7 @@ if not st.session_state.logged_in:
                             st.session_state.pending_verification = True
                         else:
                             st.error(f"Failed to send verification email: {verification_response.text}")
-                    except Exception as e:
+                    except Exception as e | TypeError:
                         error_msg = str(e)
                         if "EMAIL_EXISTS" in error_msg:
                             st.error("This email is already registered. Please log in or use a different email.")

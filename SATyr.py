@@ -261,7 +261,7 @@ st.markdown(
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
+        background-color: {COLORS['button_sidebar_hover'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_hover']};
         transform: scale(1.05);
     }}
     .stSidebar .stButton > button:not([id*="history"]):active,

@@ -27,29 +27,29 @@ COLORS = {
     'button_history_default': '#2A2A2A',
     'button_history_hover': '#3A3A3A',
     'button_history_active': '#1A1A1A',
-    'user_message': '#0000FF',  # Blue for user message
-    'ai_message': '#00FF00'  # Green for AI message
+    'user_message': '#0000FF',  # Blue, matching button_sidebar_default
+    'ai_message': '#00FF00'  # Green, matching button_form_default
 }
 
 LIGHT_MODE_COLORS = {
-    'light_app_background': '#FFFFFF',
-    'light_sidebar_background': '#F0F0F0',
-    'light_input_background': '#E8E8E8',
-    'light_text_color': '#000000',
-    'light_visit_counter_background': '#E8E8E8',
-    'light_visit_counter_text': '#000000',
-    'light_floating_message_background': '#E8E8E8',
-    'light_button_form_default': '#FFD700',  # Golden for AI message in light theme
-    'light_button_form_hover': '#E6C200',
-    'light_button_form_active': '#CCAB00',
-    'light_button_sidebar_default': '#FF0000',  # Red for user message in light theme
-    'light_button_sidebar_hover': '#CC0000',
-    'light_button_sidebar_active': '#990000',
-    'light_button_history_default': '#E8E8E8',
-    'light_button_history_hover': '#D8D8D8',
-    'light_button_history_active': '#C8C8C8',
-    'light_user_message': '#FF0000',  # Red for user message
-    'light_ai_message': '#FFD700'  # Golden for AI message
+    'light_app_background': '#FFFFFF',  # White background
+    'light_sidebar_background': '#F5F5F5',  # Soft light gray
+    'light_input_background': '#E0E0E0',  # Light gray
+    'light_text_color': '#333333',  # Dark gray for contrast
+    'light_visit_counter_background': '#E0E0E0',  # Light gray
+    'light_visit_counter_text': '#333333',  # Dark gray
+    'light_floating_message_background': '#E0E0E0',  # Light gray
+    'light_button_form_default': '#FFC107',  # Soft amber, comforting
+    'light_button_form_hover': '#FFA000',
+    'light_button_form_active': '#FF8F00',
+    'light_button_sidebar_default': '#E57373',  # Soft red, comforting
+    'light_button_sidebar_hover': '#EF5350',
+    'light_button_sidebar_active': '#F44336',
+    'light_button_history_default': '#E0E0E0',  # Neutral gray
+    'light_button_history_hover': '#D0D0D0',
+    'light_button_history_active': '#C0C0C0',
+    'light_user_message': '#E57373',  # Soft red, matching light_button_sidebar_default
+    'light_ai_message': '#FFC107'  # Soft amber, matching light_button_form_default
 }
 
 # Set page config

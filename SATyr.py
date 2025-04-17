@@ -10,46 +10,50 @@ import requests
 
 # Define color schemes inline
 COLORS = {
-    'splash_screen': '#1A1A1A',
-    'app_background': '#1A1A1A',
-    'sidebar_background': '#2A2A2A',
-    'input_background': '#3A3A3A',
+    'splash_screen': '#000000',
+    'app_background': '#000000',
+    'sidebar_background': '#1A1A1A',
+    'input_background': '#2A2A2A',
     'text_color': '#FFFFFF',
-    'visit_counter_background': '#3A3A3A',
+    'visit_counter_background': '#2A2A2A',
     'visit_counter_text': '#FFFFFF',
-    'floating_message_background': '#3A3A3A',
-    'button_form_default': '#4CAF50',
-    'button_form_hover': '#45A049',
-    'button_form_active': '#3D8B40',
-    'button_sidebar_default': '#2196F3',
-    'button_sidebar_hover': '#1E88E5',
-    'button_sidebar_active': '#1976D2',
-    'button_history_default': '#3A3A3A',
-    'button_history_hover': '#4A4A4A',
-    'button_history_active': '#2A2A2A'
+    'floating_message_background': '#2A2A2A',
+    'button_form_default': '#00FF00',  # Green for AI message in dark theme
+    'button_form_hover': '#00CC00',
+    'button_form_active': '#009900',
+    'button_sidebar_default': '#0000FF',  # Blue for user message in dark theme
+    'button_sidebar_hover': '#0000CC',
+    'button_sidebar_active': '#000099',
+    'button_history_default': '#2A2A2A',
+    'button_history_hover': '#3A3A3A',
+    'button_history_active': '#1A1A1A',
+    'user_message': '#0000FF',  # Blue for user message
+    'ai_message': '#00FF00'  # Green for AI message
 }
 
 LIGHT_MODE_COLORS = {
-    'light_app_background': '#F5F5F5',
-    'light_sidebar_background': '#E0E0E0',
-    'light_input_background': '#FFFFFF',
+    'light_app_background': '#FFFFFF',
+    'light_sidebar_background': '#F0F0F0',
+    'light_input_background': '#E8E8E8',
     'light_text_color': '#000000',
-    'light_visit_counter_background': '#E0E0E0',
+    'light_visit_counter_background': '#E8E8E8',
     'light_visit_counter_text': '#000000',
-    'light_floating_message_background': '#E0E0E0',
-    'light_button_form_default': '#4CAF50',
-    'light_button_form_hover': '#45A049',
-    'light_button_form_active': '#3D8B40',
-    'light_button_sidebar_default': '#2196F3',
-    'light_button_sidebar_hover': '#1E88E5',
-    'light_button_sidebar_active': '#1976D2',
-    'light_button_history_default': '#E0E0E0',
-    'light_button_history_hover': '#D0D0D0',
-    'light_button_history_active': '#C0C0C0'
+    'light_floating_message_background': '#E8E8E8',
+    'light_button_form_default': '#FFD700',  # Golden for AI message in light theme
+    'light_button_form_hover': '#E6C200',
+    'light_button_form_active': '#CCAB00',
+    'light_button_sidebar_default': '#FF0000',  # Red for user message in light theme
+    'light_button_sidebar_hover': '#CC0000',
+    'light_button_sidebar_active': '#990000',
+    'light_button_history_default': '#E8E8E8',
+    'light_button_history_hover': '#D8D8D8',
+    'light_button_history_active': '#C8C8C8',
+    'light_user_message': '#FF0000',  # Red for user message
+    'light_ai_message': '#FFD700'  # Golden for AI message
 }
 
 # Set page config
-st.set Vander_config(page_title="SATyr", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
 
 # Initialize session state
 if "splash_shown" not in st.session_state:
@@ -122,7 +126,7 @@ if not st.session_state.splash_shown:
 load_dotenv()
 
 # Firebase configuration
-firebase_config =gen(
+firebase_config = {
     "apiKey": os.getenv("API_KEY", ""),
     "authDomain": os.getenv("AUTH_DOMAIN", ""),
     "projectId": os.getenv("PROJECT_ID", ""),
@@ -131,7 +135,7 @@ firebase_config =gen(
     "appId": os.getenv("APP_ID", ""),
     "measurementId": os.getenv("MEASUREMENT_ID", ""),
     "databaseURL": os.getenv("DATABASE_URL", "")
-)
+}
 
 # Initialize Firebase
 try:
@@ -281,7 +285,7 @@ st.markdown(
     div[data-testid="stHorizontalBlock"] .stButton > button,
     form .stButton > button {{
         background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
-        color: white;
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
     }}
     div[data-testid="stHorizontalBlock"] .stButton > button:hover,
     form .stButton > button:hover {{
@@ -296,7 +300,7 @@ st.markdown(
     .stSidebar .stButton > button:not([id*="history"]),
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
         background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
-        color: white;
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
     }}
     .stSidebar .stButton > button:not([id*="history"]):hover,
     div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
@@ -336,8 +340,8 @@ st.markdown(
         image-rendering: crisp-edges;
     }}
     .user-bubble {{
-        background-color: {COLORS['button_form_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_form_default']};
-        color: white;
+        background-color: {COLORS['user_message'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_user_message']};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
         padding: 10px 15px;
         border-radius: 15px 15px 0 15px;
         display: inline-block;
@@ -345,8 +349,8 @@ st.markdown(
         margin: 5px 0;
     }}
     .ai-bubble {{
-        background-color: {COLORS['button_sidebar_default'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_button_sidebar_default']};
-        color: white;
+        background-color: {COLORS['ai_message'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_ai_message']};
+        color: {COLORS['text_color'] if not st.session_state.light_mode else LIGHT_MODE_COLORS['light_text_color']};
         padding: 10px 15px;
         border-radius: 15px 15px 15px 0;
         display: inline-block;

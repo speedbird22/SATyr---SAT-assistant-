@@ -360,14 +360,11 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
-        st.write("Debug: Raw chat data from Firebase:", chat_data)  # Debugging
         if not chat_data:
-            st.write("Debug: No chat data found in Firebase")
             return []
         valid_threads = []
         if isinstance(chat_data, list):
             for idx, item in enumerate(chat_data):
-                st.write(f"Debug: Processing item {idx}: {item}")  # Debugging
                 if isinstance(item, dict) and "initial" in item:
                     initial = item.get("initial")
                     if isinstance(initial, (list, tuple)) and len(initial) == 2 and all(isinstance(s, str) for s in initial):
@@ -378,13 +375,6 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
                                 if isinstance(f, (list, tuple)) and len(f) == 2 and all(isinstance(s, str) for s in f)
                             ]
                         })
-                    else:
-                        st.write(f"Debug: Skipping item {idx}: Invalid initial format: {initial}")
-                else:
-                    st.write(f"Debug: Skipping item {idx}: Not a dict or missing 'initial': {item}")
-        else:
-            st.write("Debug: Chat data is not a list:", chat_data)
-        st.write("Debug: Valid threads:", valid_threads)  # Debugging
         return valid_threads
     except Exception as e:
         st.error(f"Failed to load chat history: {str(e)}")
@@ -396,9 +386,7 @@ def save_chat_history(email: str, chat_history: List[Dict], token: str):
         return
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
-        st.write("Debug: Saving chat history:", chat_history)  # Debugging
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
-        st.write("Debug: Chat history saved successfully")
     except Exception as e:
         st.error(f"Failed to save chat history: {str(e)}")
 
@@ -648,22 +636,15 @@ if st.session_state.logged_in:
         st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
         st.subheader("Conversations")
 
-        # Debug: Display chat history length
-        st.write(f"Debug: Chat history length: {len(st.session_state.chat_history)}")
         if st.session_state.chat_history:
             displayed_threads = 0
             for idx, thread in enumerate(st.session_state.chat_history):
-                # Simplified check: Ensure thread is a dict with 'initial' key
                 if not isinstance(thread, dict) or "initial" not in thread:
-                    st.write(f"Debug: Skipping thread {idx}: Not a dict or missing 'initial': {thread}")
                     continue
                 initial = thread.get("initial")
-                # Check if initial is a tuple/list with at least one string
                 if not isinstance(initial, (list, tuple)) or len(initial) < 1 or not isinstance(initial[0], str):
-                    st.write(f"Debug: Skipping thread {idx}: Invalid initial format: {initial}")
                     continue
                 user_msg = initial[0]
-                # Truncate label safely
                 label = f"{user_msg[:20]}{'...' if len(user_msg) > 20 else ''}"
                 if st.button(label, key=f"history_{idx}"):
                     st.session_state.selected_conversation_index = idx

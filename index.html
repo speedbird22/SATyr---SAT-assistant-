@@ -6,6 +6,18 @@
     <title>SATyr AI</title>
     <link href="https://fonts.cdnfonts.com/css/the-wood-essence" rel="stylesheet">
     <style>
+        /* Ensure full-screen rendering */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            background: #000000;
+            cursor: default;
+            color: white;
+        }
+
         /* Base styles */
         * {
             margin: 0;
@@ -16,14 +28,6 @@
 
         header, nav, .logo, nav a, .footer-text, .tagline-word {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-        }
-
-        body {
-            color: white;
-            min-height: 100vh;
-            overflow-x: hidden;
-            background: #000000;
-            cursor: default;
         }
 
         header {
@@ -40,8 +44,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
+            width: 100%; /* Full width */
+            margin: 0;
             position: relative;
         }
 
@@ -105,6 +109,8 @@
         main {
             padding-top: 80px;
             position: relative;
+            width: 100%;
+            min-height: 100vh;
         }
 
         section {
@@ -115,6 +121,7 @@
             top: 80px;
             left: 0;
             width: 100%;
+            min-height: calc(100vh - 80px);
             pointer-events: none;
             z-index: 1;
         }
@@ -142,7 +149,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: calc(100vh - 200px);
+            height: calc(100vh - 80px);
             position: relative;
             padding: 0 20px;
         }
@@ -309,7 +316,6 @@
         .features-container {
             display: flex;
             width: 100%;
-            max-width: 1200px;
             gap: 40px;
         }
 
@@ -358,8 +364,8 @@
         }
 
         .controller-container {
-            width: 90%;
-            height: 90%;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -461,7 +467,8 @@
         }
 
         .chat-input {
-rzec: 8px;
+            display: flex;
+            padding: 8px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             background-color: #1a1a1a;
         }
@@ -522,16 +529,15 @@ rzec: 8px;
         }
 
         .ai-chat-container {
-            max-width: 800px;
-            width: 90%;
-            margin: 100px auto 0;
+            width: 100%;
+            margin: 40px 0;
             background-color: rgba(30, 30, 30, 0.7);
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 70vh;
+            height: calc(100vh - 160px);
         }
 
         .ai-chat-header {
@@ -627,9 +633,10 @@ rzec: 8px;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: calc(100vh - 200px);
+            height: calc(100vh - 80px);
             text-align: center;
             padding: 0 20px;
+            width: 100%;
         }
 
         .login-form {
@@ -683,6 +690,7 @@ rzec: 8px;
             padding: 10px;
             background-color: rgba(0, 0, 0, 0.5);
             border-radius: 10px;
+            width: 100%;
         }
 
         .chat-history-item {
@@ -715,8 +723,8 @@ rzec: 8px;
             }
 
             .ai-chat-container {
-                width: 95%;
-                height: 80vh;
+                width: 100%;
+                height: calc(100vh - 160px);
             }
         }
     </style>

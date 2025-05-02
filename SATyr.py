@@ -2,179 +2,13 @@ import streamlit as st
 import http.client
 import json
 from typing import Optional, Dict, List, Tuple
-import time
 from dotenv import load_dotenv
 import os
 import pyrebase
 import requests
 import uuid
-
-# Define theme color schemes
-THEMES = {
-    'satyr_stock': {
-        'name': 'SATyr Stock Theme',
-        'splash_screen': '#D8AA2A',  # Warm gold
-        'app_background': '#1A1A2E',  # Dark navy
-        'sidebar_background': '#2A2A4E',  # Slightly brighter navy
-        'input_background': '#B2984A',  # Dark shade of gold
-        'text_color': '#FFFFFF',
-        'visit_counter_background': '#D8AA2A80',  # Translucent gold
-        'visit_counter_text': '#FFFFFF',
-        'floating_message_background': '#B2984A',  # Dark shade of gold
-        'button_form_default': '#68E636',  # Green
-        'button_form_hover': '#50B62B',
-        'button_form_active': '#388E1F',
-        'button_sidebar_default': '#007AFF',  # Blue
-        'button_sidebar_hover': '#0066CC',
-        'button_sidebar_active': '#0055B3',
-        'button_history_default': '#2A2A4E',  # Match sidebar
-        'button_history_hover': '#3A3A5E',
-        'button_history_active': '#1A1A3E',
-        'user_message': '#007AFF',  # Blue
-        'ai_message': '#68E636'  # Green
-    },
-    'floral': {
-        'name': 'Floral Theme',
-        'splash_screen': '#FFB7C5',  # Cherry blossom pink
-        'app_background': '#FCE4EC',  # Light pink
-        'sidebar_background': '#F8BBD0',  # Soft pink
-        'input_background': '#D81B60',  # Deep pink
-        'text_color': '#4A2E2A',  # Dark brown for contrast
-        'visit_counter_background': '#FFCDD280',  # Translucent pink
-        'visit_counter_text': '#4A2E2A',
-        'floating_message_background': '#D81B60',  # Deep pink
-        'button_form_default': '#F06292',  # Rose pink
-        'button_form_hover': '#EC407A',
-        'button_form_active': '#D81B60',
-        'button_sidebar_default': '#AB47BC',  # Lavender
-        'button_sidebar_hover': '#9C27B0',
-        'button_sidebar_active': '#8E24AA',
-        'button_history_default': '#F8BBD0',  # Soft pink
-        'button_history_hover': '#F48FB1',
-        'button_history_active': '#F06292',
-        'user_message': '#AB47BC',  # Lavender
-        'ai_message': '#F06292'  # Rose pink
-    },
-    'aqua': {
-        'name': 'Aqua Theme',
-        'splash_screen': '#4FC3F7',  # Sky blue
-        'app_background': '#E0F7FA',  # Light cyan
-        'sidebar_background': '#B2EBF2',  # Soft cyan
-        'input_background': '#0288D1',  # Deep blue
-        'text_color': '#01579B',  # Dark blue
-        'visit_counter_background': '#4FC3F780',  # Translucent sky blue
-        'visit_counter_text': '#01579B',
-        'floating_message_background': '#0288D1',  # Deep blue
-        'button_form_default': '#29B6F6',  # Light blue
-        'button_form_hover': '#039BE5',
-        'button_form_active': '#0288D1',
-        'button_sidebar_default': '#26A69A',  # Teal
-        'button_sidebar_hover': '#009688',
-        'button_sidebar_active': '#00897B',
-        'button_history_default': '#B2EBF2',  # Soft cyan
-        'button_history_hover': '#80DEEA',
-        'button_history_active': '#4FC3F7',
-        'user_message': '#26A69A',  # Teal
-        'ai_message': '#29B6F6'  # Light blue
-    },
-    'golden': {
-        'name': 'Golden Theme',
-        'splash_screen': '#FFD700',  # Gold
-        'app_background': '#FFF8E1',  # Light gold
-        'sidebar_background': '#FFECB3',  # Soft gold
-        'input_background': '#D4A017',  # Deep gold
-        'text_color': '#3E2723',  # Dark brown
-        'visit_counter_background': '#FFD70080',  # Translucent gold
-        'visit_counter_text': '#3E2723',
-        'floating_message_background': '#D4A017',  # Deep gold
-        'button_form_default': '#FFCA28',  # Amber
-        'button_form_hover': '#FFB300',
-        'button_form_active': '#FFA000',
-        'button_sidebar_default': '#FBC02D',  # Yellow gold
-        'button_sidebar_hover': '#F9A825',
-        'button_sidebar_active': '#F57F17',
-        'button_history_default': '#FFECB3',  # Soft gold
-        'button_history_hover': '#FFE082',
-        'button_history_active': '#FFCA28',
-        'user_message': '#FBC02D',  # Yellow gold
-        'ai_message': '#FFCA28'  # Amber
-    }
-}
-
-# Set page config
-st.set_page_config(page_title="SATyr", page_icon="🧠", layout="wide")
-
-# Initialize session state
-if "splash_shown" not in st.session_state:
-    st.session_state.splash_shown = False
-if "show_settings" not in st.session_state:
-    st.session_state.show_settings = False
-if "theme" not in st.session_state:
-    st.session_state.theme = 'satyr_stock'
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "chatbot" not in st.session_state:
-    st.session_state.chatbot = None
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "user_name" not in st.session_state:
-    st.session_state.user_name = None
-if "selected_conversation_index" not in st.session_state:
-    st.session_state.selected_conversation_index = None
-if "show_double_click_message" not in st.session_state:
-    st.session_state.show_double_click_message = False
-if "user_email" not in st.session_state:
-    st.session_state.user_email = None
-if "user_token" not in st.session_state:
-    st.session_state.user_token = None
-if "refresh_token" not in st.session_state:
-    st.session_state.refresh_token = None
-if "visit_count" not in st.session_state:
-    st.session_state.visit_count = 0
-if "signup_clicked" not in st.session_state:
-    st.session_state.signup_clicked = False
-if "signup_email" not in st.session_state:
-    st.session_state.signup_email = ""
-if "signup_password" not in st.session_state:
-    st.session_state.signup_password = ""
-if "pending_verification" not in st.session_state:
-    st.session_state.pending_verification = False
-if "temp_user_id" not in st.session_state:
-    st.session_state.temp_user_id = None
-if "temp_username" not in st.session_state:
-    st.session_state.temp_username = None
-
-# Get current theme colors
-CURRENT_THEME = THEMES[st.session_state.theme]
-
-# Display splash screen
-if not st.session_state.splash_shown:
-    with st.container():
-        st.markdown(
-            f"""
-            <style>
-            #splash-screen {{
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                background-color: {CURRENT_THEME['splash_screen']};
-                z-index: 999999;
-                animation: fadeOut 0.25s ease-out 0.75s forwards;
-            }}
-            @keyframes fadeOut {{
-                from {{ opacity: 1; }}
-                to {{ opacity: 0; visibility: hidden; }}
-            }}
-            </style>
-            <div id="splash-screen"></div>
-            """,
-            unsafe_allow_html=True
-        )
-    time.sleep(1)
-    st.session_state.splash_shown = True
-    st.rerun()
+import time
+import streamlit.components.v1 as components
 
 # Load environment variables
 load_dotenv()
@@ -198,37 +32,8 @@ try:
     db = firebase.database()
 except Exception as e:
     st.error(f"Failed to initialize Firebase: {str(e)}")
-    st.stop()
 
-# Function to refresh user token
-def refresh_user_token(refresh_token: str) -> Optional[str]:
-    try:
-        response = requests.post(
-            'https://securetoken.googleapis.com/v1/token?key=' + os.getenv("API_KEY"),
-            data={
-                'grant_type': 'refresh_token',
-                'refresh_token': refresh_token
-            }
-        )
-        if response.status_code == 200:
-            data = response.json()
-            new_id_token = data.get('id_token')
-            new_refresh_token = data.get('refresh_token')
-            if new_id_token:
-                st.session_state.user_token = new_id_token
-                st.session_state.refresh_token = new_refresh_token
-                return new_id_token
-            else:
-                st.error("Failed to obtain new ID token from refresh response.")
-                return None
-        else:
-            st.error(f"Failed to refresh token: {response.text}")
-            return None
-    except Exception as e:
-        st.error(f"Error refreshing token: {str(e)}")
-        return None
-
-# AI Client
+# SATyr AI Client
 class SATyrAI:
     def __init__(self):
         self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"
@@ -291,202 +96,51 @@ class SATyrAI:
                     self.context = data.get("ai_message", "[Error] No AI message in response")
                     return self.context
                 except json.JSONDecodeError as e:
-                    st.error(f"Invalid JSON response: {response_data[:100]}")
                     return f"[Error] Invalid JSON response: {str(e)}"
             else:
                 error_details = self._log_api_error(response.status, response.reason, response_data)
-                st.error(error_details)
                 return f"[Error] API request failed: {response.status} - {response.reason}"
 
         except http.client.HTTPException as e:
-            st.error(f"HTTP error occurred: {str(e)}")
             return f"[Error] HTTP error: {str(e)}"
         except Exception as e:
-            st.error(f"Unexpected error: {str(e)}")
             return f"[Error] Network or API error: {str(e)}"
 
     def reset(self):
         self.session_id = None
         self.context = None
 
-# Initialize chatbot
-if st.session_state.chatbot is None:
-    st.session_state.chatbot = SATyrAI()
+# Initialize SATyr AI
+satyr_ai = SATyrAI()
 
-# Custom styling
-st.markdown(
-    f"""
-    <style>
-    body {{
-        background-color: {CURRENT_THEME['app_background']};
-        color: {CURRENT_THEME['text_color']};
-    }}
-    .sidebar .sidebar-content {{
-        background-color: {CURRENT_THEME['sidebar_background']};
-    }}
-    .block-container {{
-        padding: 2rem 2rem 2rem;
-    }}
-    input, textarea {{
-        background-color: {CURRENT_THEME['input_background']} !important;
-        color: {CURRENT_THEME['text_color']} !important;
-    }}
-    #visit-counter {{
-        position: relative;
-        background-color: {CURRENT_THEME['visit_counter_background']};
-        color: {CURRENT_THEME['visit_counter_text']};
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 14px;
-        margin-top: 5px;
-        display: inline-block;
-        z-index: 1001;
-    }}
-    #floating-message {{
-        position: fixed;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: {CURRENT_THEME['floating_message_background']};
-        color: {CURRENT_THEME['text_color']};
-        padding: 10px;
-        border-radius: 5px;
-        display: none;
-        z-index: 1000;
-    }}
-    .stButton > button {{
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        width: 100%;
-    }}
-    div[data-testid="stHorizontalBlock"] .stButton > button,
-    form .stButton > button {{
-        background-color: {CURRENT_THEME['button_form_default']};
-        color: {CURRENT_THEME['text_color']};
-    }}
-    div[data-testid="stHorizontalBlock"] .stButton > button:hover,
-    form .stButton > button:hover {{
-        background-color: {CURRENT_THEME['button_form_hover']};
-        transform: scale(1.05);
-    }}
-    div[data-testid="stHorizontalBlock"] .stButton > button:active,
-    form .stButton > button:active {{
-        background-color: {CURRENT_THEME['button_form_active']};
-        transform: scale(0.98);
-    }}
-    .stSidebar .stButton > button:not([id*="history"]),
-    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button {{
-        background-color: {CURRENT_THEME['button_sidebar_default']};
-        color: {CURRENT_THEME['text_color']};
-    }}
-    .stSidebar .stButton > button:not([id*="history"]):hover,
-    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:hover {{
-        background-color: {CURRENT_THEME['button_sidebar_hover']};
-        transform: scale(1.05);
-    }}
-    .stSidebar .stButton > button:not([id*="history"]):active,
-    div:not([data-testid="stHorizontalBlock"]):not([id*="form"]) .stButton > button:active {{
-        background-color: {CURRENT_THEME['button_sidebar_active']};
-        transform: scale(0.98);
-    }}
-    .stSidebar .stButton[id*="history"] > button {{
-        background-color: {CURRENT_THEME['button_history_default']};
-        color: {CURRENT_THEME['text_color']};
-        font-size: 13px;
-        padding: 6px 12px;
-    }}
-    .stSidebar .stButton[id*="history"] > button:hover {{
-        background-color: {CURRENT_THEME['button_history_hover']};
-        transform: scale(1.02);
-    }}
-    .stSidebar .stButton[id*="history"] > button:active {{
-        background-color: {CURRENT_THEME['button_history_active']};
-        transform: scale(0.98);
-    }}
-    .logo-container {{
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 10px;
-    }}
-    .logo-image {{
-        max-width: 50px;
-        height: auto;
-        margin-right: 10px;
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: -moz-crisp-edges;
-        image-rendering: crisp-edges;
-    }}
-    .user-bubble {{
-        background-color: {CURRENT_THEME['user_message']};
-        color: {CURRENT_THEME['text_color']};
-        padding: 10px 15px;
-        border-radius: 15px 15px 0 15px;
-        display: inline-block;
-        max-width: 70%;
-        margin: 5px 0;
-    }}
-    .ai-bubble {{
-        background-color: {CURRENT_THEME['ai_message']};
-        color: {CURRENT_THEME['text_color']};
-        padding: 10px 15px;
-        border-radius: 15px 15px 15px 0;
-        display: inline-block;
-        max-width: 70%;
-        margin: 5px 0;
-    }}
-    .stSelectbox > div > div {{
-        background-color: {CURRENT_THEME['input_background']};
-        color: {CURRENT_THEME['text_color']};
-        border-radius: 8px;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# Show double-click message
-if st.session_state.show_double_click_message:
-    st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
-    time.sleep(2)
-    st.session_state.show_double_click_message = False
-
-# Update visit counter
-def update_visit_counter():
+# Helper Functions
+def refresh_user_token(refresh_token: str) -> Optional[Tuple[str, str]]:
     try:
-        current_count = db.child("visit_count").get().val() or 0
-        new_count = current_count + 1
-        db.child("visit_count").set(new_count)
-        st.session_state.visit_count = new_count
+        response = requests.post(
+            'https://securetoken.googleapis.com/v1/token?key=' + os.getenv("API_KEY"),
+            data={
+                'grant_type': 'refresh_token',
+                'refresh_token': refresh_token
+            }
+        )
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('id_token'), data.get('refresh_token')
+        return None, None
     except Exception as e:
-        st.warning(f"Failed to update visit counter: {str(e)}")
+        st.error(f"Error refreshing token: {str(e)}")
+        return None, None
 
-# Load visit counter
-def load_visit_counter():
-    try:
-        count = db.child("visit_count").get().val() or 0
-        st.session_state.visit_count = count
-    except Exception as e:
-        st.warning(f"Failed to load visit counter: {str(e)}")
-
-# Fetch username
 def fetch_username(email: str, token: str) -> str:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         username = db.child("users").child(safe_email).child("username").get(token=token).val()
         return username if username else None
     except Exception as e:
-        st.warning(f"Failed to fetch username: {str(e)}")
+        st.error(f"Failed to fetch username: {str(e)}")
         return None
 
-# Load chat history
 def load_chat_history(email: str, token: str) -> List[Dict]:
-    if not st.session_state.logged_in:
-        return []
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         chat_data = db.child("users").child(safe_email).child("chat_history").get(token=token).val()
@@ -494,7 +148,7 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
             return []
         valid_threads = []
         if isinstance(chat_data, list):
-            for idx, item in enumerate(chat_data):
+            for item in chat_data:
                 if isinstance(item, dict) and "initial" in item:
                     initial = item.get("initial")
                     if isinstance(initial, (list, tuple)) and len(initial) == 2 and all(isinstance(s, str) for s in initial):
@@ -510,450 +164,130 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
         st.error(f"Failed to load chat history: {str(e)}")
         return []
 
-# Save chat history
 def save_chat_history(email: str, chat_history: List[Dict], token: str):
-    if not st.session_state.logged_in:
-        return
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
         db.child("users").child(safe_email).child("chat_history").set(chat_history, token)
     except Exception as e:
         st.error(f"Failed to save chat history: {str(e)}")
 
-# Clear chat history
-def clear_chat_history(email: str, token: str):
-    if not st.session_state.logged_in:
-        return
+def update_visit_counter():
     try:
-        safe_email = email.replace(".", "_").replace("@", "_")
-        db.child("users").child(safe_email).child("chat_history").remove(token)
-        st.session_state.chat_history = []
-        st.success("Chat history cleared successfully!")
+        current_count = db.child("visit_count").get().val() or 0
+        new_count = current_count + 1
+        db.child("visit_count").set(new_count)
+        return new_count
     except Exception as e:
-        st.error(f"Failed to clear chat history: {str(e)}")
+        st.error(f"Failed to update visit counter: {str(e)}")
+        return 0
 
-# Initial load of visit counter
-load_visit_counter()
+# Streamlit App
+def main():
+    # Initialize session state
+    if 'user' not in st.session_state:
+        st.session_state.user = None
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = 'home'
+    if 'chat_message' not in st.session_state:
+        st.session_state.chat_message = ""
 
-# Login Page
-if not st.session_state.logged_in:
-    st.title("🔐 SATyr Login")
-    st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
+    # Read and embed HTML
+    with open("index.html", "r") as f:
+        html_content = f.read()
+    components.html(html_content, height=800, scrolling=True)
 
-    if not st.session_state.pending_verification:
-        email = st.text_input("📧 Email", key="email_input")
-        password = st.text_input("🔒 Password", type="password", key="password_input")
+    # Handle JavaScript-to-Python communication
+    if st.session_state.get('js_message'):
+        js_data = st.session_state.js_message
+        action = js_data.get('action')
+        data = js_data.get('data', {})
 
-        email_valid = "@" in email if email else False
-        if email and not email_valid:
-            st.error("Please enter a valid email address containing '@'.")
-
-        password_valid = len(password) >= 6 if password else False
-        if password and not password_valid:
-            st.error("Password must be at least 6 characters long.")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            login = st.button("🔓 Login")
-        with col2:
-            signup = st.button("📝 Sign Up")
-
-        if login and email_valid and password_valid:
+        if action == 'login':
+            email = data.get('email')
+            password = data.get('password')
             try:
                 user = auth.sign_in_with_email_and_password(email, password)
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.session_state.user_token = user['idToken']
-                st.session_state.refresh_token = user['refreshToken']  # Store refresh token
                 username = fetch_username(email, user['idToken'])
-                st.session_state.user_name = username if username else email.split("@")[0]
+                st.session_state.user = {
+                    'user_token': user['idToken'],
+                    'refresh_token': user['refreshToken'],
+                    'email': email,
+                    'username': username or email.split("@")[0]
+                }
                 st.session_state.chat_history = load_chat_history(email, user['idToken'])
                 update_visit_counter()
-                st.success(f"Logged in as {st.session_state.user_name}")
-                st.session_state.show_double_click_message = True
-                time.sleep(0.5)
-                st.rerun()
+                st.session_state.js_response = {'status': 'success', 'message': 'Login successful'}
             except Exception as e:
-                error_msg = str(e)
-                if "INVALID_LOGIN_CREDENTIALS" in error_msg:
-                    st.error("Incorrect email or password.")
-                else:
-                    st.error(f"Authentication failed: {error_msg}")
+                st.session_state.js_response = {'status': 'error', 'message': str(e)}
 
-        if signup and email_valid and password_valid:
-            st.session_state.signup_clicked = True
-            st.session_state.signup_email = email
-            st.session_state.signup_password = password
-
-        if st.session_state.signup_clicked:
-            custom_username = st.text_input("Choose a username:", key="custom_username")
-            if st.button("Confirm Sign-Up", key="confirm_signup"):
-                if not custom_username or not custom_username.strip():
-                    st.error("Please enter a valid username.")
-                else:
-                    try:
-                        user = auth.create_user_with_email_and_password(
-                            st.session_state.signup_email,
-                            st.session_state.signup_password
-                        )
-                        st.session_state.temp_user_id = user['localId']
-                        st.session_state.user_token = user['idToken']
-                        st.session_state.refresh_token = user['refreshToken']  # Store refresh token
-                        st.session_state.temp_username = custom_username
-                        safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
-                        db.child("pending_users").child(safe_email).set(
-                            {
-                                "username": custom_username,
-                                "email": st.session_state.signup_email,
-                                "password": st.session_state.signup_password,
-                                "temp_user_id": st.session_state.temp_user_id,
-                                "created_at": time.time()
-                            },
-                            token=st.session_state.user_token
-                        )
-                        verification_response = requests.post(
-                            'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + os.getenv("API_KEY"),
-                            json={
-                                'requestType': 'VERIFY_EMAIL',
-                                'idToken': st.session_state.user_token,
-                                'email': st.session_state.signup_email
-                            }
-                        )
-                        if verification_response.status_code == 200:
-                            st.info(f"Verification email sent! Click the link in your inbox, then return here to complete sign-up.")
-                            st.session_state.pending_verification = True
-                        else:
-                            st.error(f"Failed to send verification email: {verification_response.text}")
-                    except Exception as e:
-                        error_msg = str(e)
-                        if "EMAIL_EXISTS" in error_msg:
-                            st.error("This email is already registered. Please log in or use a different email.")
-                        elif "INVALID_EMAIL" in error_msg:
-                            st.error("Invalid email format.")
-                        elif "WEAK_PASSWORD" in error_msg:
-                            st.error("Password is too weak.")
-                        else:
-                            st.error(f"Failed to initiate sign-up: {str(e)}")
-
-    else:
-        try:
-            user = auth.sign_in_with_email_and_password(
-                st.session_state.signup_email,
-                st.session_state.signup_password
-            )
-            st.session_state.user_token = user['idToken']
-            st.session_state.refresh_token = user['refreshToken']  # Store refresh token
-            user_info = requests.post(
-                'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + os.getenv("API_KEY"),
-                json={'idToken': st.session_state.user_token}
-            )
-            if user_info.status_code == 200:
-                user_data = user_info.json()
-                if user_data.get('users', [{}])[0].get('emailVerified', False):
-                    temp_user_info = user_data.get('users', [{}])[0]
-                    temp_local_id = temp_user_info.get('localId')
-                    if temp_local_id:
-                        delete_response = requests.post(
-                            'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
-                            json={'idToken': st.session_state.user_token, 'localId': temp_local_id}
-                        )
-                        if delete_response.status_code != 200:
-                            st.error(f"Failed to delete temporary user: {delete_response.text}")
-                            st.stop()
-                    final_user = auth.create_user_with_email_and_password(
-                        st.session_state.signup_email,
-                        st.session_state.signup_password
-                    )
-                    st.session_state.user_token = final_user['idToken']
-                    st.session_state.refresh_token = final_user['refreshToken']  # Store refresh token
-                    safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
-                    db.child("users").child(safe_email).set(
-                        {"username": st.session_state.temp_username},
-                        token=st.session_state.user_token
-                    )
-                    db.child("pending_users").child(safe_email).remove()
-                    st.success("Account creation successful! Enjoy mate :) ")
-                    st.session_state.signup_clicked = False
-                    st.session_state.signup_email = ""
-                    st.session_state.signup_password = ""
-                    st.session_state.pending_verification = False
-                    st.session_state.temp_user_id = None
-                    st.session_state.temp_username = None
-                    time.sleep(2)
-                    st.rerun()
-                else:
-                    st.info("Please click the verification link in your email and return here to complete sign-up.")
-            else:
-                st.error(f"Failed to check verification status: {user_info.text}")
-        except Exception as e:
-            st.error(f"Error checking verification: {str(e)}")
-
-        col1, col2 = st.columns(2)
-        with col2:
-            if st.button("Cancel Sign-Up", key="cancel_signup"):
-                try:
-                    safe_email = st.session_state.signup_email.replace(".", "_").replace("@", "_")
-                    pending_data = db.child("pending_users").child(safe_email).get().val()
-                    if pending_data and pending_data.get("temp_user_id"):
-                        requests.post(
-                            'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
-                            json={'idToken': st.session_state.user_token, 'localId': pending_data["temp_user_id"]}
-                        )
-                    db.child("pending_users").child(safe_email).remove()
-                    st.info("Sign-up cancelled. Pending data and temporary user removed.")
-                    st.session_state.signup_clicked = False
-                    st.session_state.signup_email = ""
-                    st.session_state.signup_password = ""
-                    st.session_state.pending_verification = False
-                    st.session_state.temp_user_id = None
-                    st.session_state.temp_username = None
-                    time.sleep(0.5)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error cancelling sign-up: {str(e)}")
-
-    with st.expander("Forgot Password?"):
-        reset_email = st.text_input("📧 Enter your email to reset password", key="reset_email")
-        reset_button = st.button("🔄 Send Reset Email")
-        if reset_button and reset_email:
-            if "@" not in reset_email:
-                st.error("Please enter a valid email address containing '@'.")
-            else:
-                try:
-                    auth.send_password_reset_email(reset_email)
-                    st.success("Password reset email sent! Check your inbox.")
-                except Exception as e:
-                    error_msg = str(e)
-                    if "EMAIL_NOT_FOUND" in error_msg:
-                        st.error("No account found with this email.")
-                    elif "INVALID_EMAIL" in error_msg:
-                        st.error("Invalid email address.")
-                    else:
-                        st.error(f"Failed to send reset email: {error_msg}")
-
-# Sidebar
-if st.session_state.logged_in:
-    with st.sidebar:
-        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
-        col1, col2 = st.columns([1, 3])
-        with col1:
-            st.image("logo.jpg", clamp=True, output_format="auto")
-        with col2:
-            st.markdown('<h1 class="sidebar-title">SATyr</h1>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(
-            """
-            <style>
-            [data-testid="stImage"] img {
-                max-width: 50px;
-                height: auto;
-                image-rendering: -webkit-optimize-contrast;
-                image-rendering: -moz-crisp-edges;
-                image-rendering: crisp-edges;
-            }
-            .logo-container {
-                display: flex;
-                align-items: flex-start;
-                margin-bottom: 10px;
-            }
-            div[data-testid="stSidebar"] h1.sidebar-title {
-                font-size: 45px !important;
-                margin: 0;
-                line-height: 1;
-                vertical-align: middle;
-                margin-top: -15px !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown(f'<div id="visit-counter">Visits: {st.session_state.visit_count}</div>', unsafe_allow_html=True)
-        st.subheader("Conversations")
-
-        if st.session_state.chat_history:
-            displayed_threads = 0
-            for idx, thread in enumerate(st.session_state.chat_history):
-                if not isinstance(thread, dict) or "initial" not in thread:
-                    continue
-                initial = thread.get("initial")
-                if not isinstance(initial, (list, tuple)) or len(initial) < 1 or not isinstance(initial[0], str):
-                    continue
-                user_msg = initial[0]
-                label = f"{user_msg[:20]}{'...' if len(user_msg) > 20 else ''}"
-                if st.button(label, key=f"history_{idx}"):
-                    st.session_state.selected_conversation_index = idx
-                    st.rerun()
-                displayed_threads += 1
-            if displayed_threads == 0:
-                st.warning("No valid conversation threads found. Try starting a new chat or check Firebase data.")
-        else:
-            st.info("No conversations yet. Start a new chat to see it here.")
-
-        if st.button("🔄 New Session"):
-            st.session_state.chatbot.reset()
-            st.session_state.selected_conversation_index = None
-            st.rerun()
-
-        if st.button("⚙️ Settings"):
-            st.session_state.show_settings = True
-            st.rerun()
-
-        if st.button("🚪 Logout", key="logout_button"):
+        elif action == 'signup':
+            email = data.get('email')
+            password = data.get('password')
+            username = data.get('username')
             try:
-                save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-            except Exception as e:
-                print(f"Logout: Failed to save chat history: {str(e)}")
-            st.session_state.logged_in = False
-            st.session_state.user_token = None
-            st.session_state.refresh_token = None
-            st.session_state.user_email = None
-            st.session_state.user_name = None
-            st.session_state.chat_history = []
-            st.session_state.selected_conversation_index = None
-            st.session_state.show_settings = False
-            st.session_state.signup_clicked = False
-            st.session_state.pending_verification = False
-            st.session_state.temp_user_id = None
-            st.session_state.temp_username = None
-            st.rerun()
-
-# Settings Panel
-if st.session_state.logged_in and st.session_state.show_settings:
-    st.title("⚙️ Settings")
-    st.subheader("Update Nickname")
-    new_nickname = st.text_input("Enter new nickname:", value=st.session_state.user_name or "", key="new_nickname")
-    if st.button("Save Nickname"):
-        if new_nickname and new_nickname.strip():
-            st.session_state.user_name = new_nickname
-            try:
-                safe_email = st.session_state.user_email.replace(".", "_").replace("@", "_")
-                db.child("users").child(safe_email).update(
-                    {"username": new_nickname},
-                    token=st.session_state.user_token
+                user = auth.create_user_with_email_and_password(email, password)
+                safe_email = email.replace(".", "_").replace("@", "_")
+                db.child("users").child(safe_email).set({"username": username}, user['idToken'])
+                verification_response = requests.post(
+                    'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + os.getenv("API_KEY"),
+                    json={
+                        'requestType': 'VERIFY_EMAIL',
+                        'idToken': user['idToken'],
+                        'email': email
+                    }
                 )
-                st.success(f"Nickname updated to {st.session_state.user_name}")
+                if verification_response.status_code == 200:
+                    st.session_state.user = {
+                        'user_token': user['idToken'],
+                        'refresh_token': user['refreshToken'],
+                        'email': email,
+                        'username': username
+                    }
+                    st.session_state.js_response = {'status': 'success', 'message': 'Signup successful, verification email sent'}
+                else:
+                    st.session_state.js_response = {'status': 'error', 'message': 'Failed to send verification email'}
             except Exception as e:
-                st.error(f"Failed to update nickname in Firebase: {str(e)}")
-            st.session_state.show_settings = False
-            st.rerun()
-        else:
-            st.error("Please enter a valid nickname.")
+                st.session_state.js_response = {'status': 'error', 'message': str(e)}
 
-    st.subheader("Clear Chat History")
-    if st.button("Clear All Chat History"):
-        clear_chat_history(st.session_state.user_email, st.session_state.user_token)
-        st.session_state.selected_conversation_index = None
-        st.rerun()
-
-    st.subheader("Delete Account")
-    st.warning("This action will permanently delete your account and all associated data. This cannot be undone.")
-    if st.button("Delete My Account"):
-        try:
-            # Refresh the user token before deletion
-            if st.session_state.refresh_token:
-                new_token = refresh_user_token(st.session_state.refresh_token)
-                if not new_token:
-                    st.error("Failed to refresh authentication token. Please log out and log in again to delete your account.")
-                    st.stop()
+        elif action == 'chat':
+            if st.session_state.user:
+                message = data.get('message')
+                context = data.get('context')
+                response = satyr_ai.send_request(message, context)
+                if not response.startswith("[Error]"):
+                    chat_history = st.session_state.chat_history
+                    new_thread = {"initial": [message, response], "follow_ups": []}
+                    chat_history.append(new_thread)
+                    save_chat_history(st.session_state.user['email'], chat_history, st.session_state.user['user_token'])
+                    st.session_state.chat_history = chat_history
+                    st.session_state.js_response = {'status': 'success', 'response': response, 'chat_history': chat_history}
+                else:
+                    st.session_state.js_response = {'status': 'error', 'message': response}
             else:
-                st.error("No refresh token available. Please log out and log in again to delete your account.")
-                st.stop()
+                st.session_state.js_response = {'status': 'error', 'message': 'User not logged in'}
 
-            # Delete user data from Firebase Realtime Database
-            safe_email = st.session_state.user_email.replace(".", "_").replace("@", "_")
-            db.child("users").child(safe_email).remove(token=st.session_state.user_token)
+        elif action == 'get_chat_history':
+            if st.session_state.user:
+                st.session_state.chat_history = load_chat_history(st.session_state.user['email'], st.session_state.user['user_token'])
+                st.session_state.js_response = {'status': 'success', 'chat_history': st.session_state.chat_history}
+            else:
+                st.session_state.js_response = {'status': 'error', 'message': 'User not logged in'}
 
-            # Delete Firebase Authentication account
-            response = requests.post(
-                'https://identitytoolkit.googleapis.com/v1/accounts:delete?key=' + os.getenv("API_KEY"),
-                json={'idToken': st.session_state.user_token}
-            )
-            if response.status_code == 200:
-                st.session_state.logged_in = False
-                st.session_state.user_token = None
-                st.session_state.refresh_token = None
-                st.session_state.user_email = None
-                st.session_state.user_name = None
+        elif action == 'clear_history':
+            if st.session_state.user:
+                safe_email = st.session_state.user['email'].replace(".", "_").replace("@", "_")
+                db.child("users").child(safe_email).child("chat_history").remove(token=st.session_state.user['user_token'])
                 st.session_state.chat_history = []
-                st.session_state.selected_conversation_index = None
-                st.session_state.show_settings = False
-                st.session_state.signup_clicked = False
-                st.session_state.pending_verification = False
-                st.session_state.temp_user_id = None
-                st.session_state.temp_username = None
-                st.success("Account deleted successfully. You can now sign up as a new user.")
-                st.rerun()
+                st.session_state.js_response = {'status': 'success', 'message': 'Chat history cleared'}
             else:
-                st.error(f"Failed to delete account: {response.text}")
-        except Exception as e:
-            st.error(f"Error deleting account: {str(e)}")
+                st.session_state.js_response = {'status': 'error', 'message': 'User not logged in'}
 
-    st.subheader("Theme")
-    theme_options = {theme_id: theme_data['name'] for theme_id, theme_data in THEMES.items()}
-    selected_theme = st.selectbox("Select Theme", options=list(theme_options.keys()), format_func=lambda x: theme_options[x], index=list(theme_options.keys()).index(st.session_state.theme))
-    
-    if st.button("Apply Theme"):
-        st.session_state.theme = selected_theme
-        st.success(f"{theme_options[selected_theme]} applied! Returning to chat...")
-        st.session_state.show_settings = False
-        st.rerun()
+        elif action == 'logout':
+            st.session_state.user = None
+            st.session_state.chat_history = []
+            st.session_state.js_response = {'status': 'success', 'message': 'Logged out successfully'}
 
-    if st.button("Back to Chat"):
-        st.session_state.show_settings = False
-        st.rerun()
-
-# Main Chat UI
-if st.session_state.logged_in and not st.session_state.show_settings:
-    st.title("SATyr - your SAT saviour")
-
-    if st.session_state.user_name:
-        st.session_state.chatbot.user_name = st.session_state.user_name
-
-        if st.session_state.selected_conversation_index is None:
-            with st.form("chat_form", clear_on_submit=True):
-                user_input = st.text_input("💬 Your message:", placeholder="Type your message here...")
-                submitted = st.form_submit_button("Send")
-
-                if submitted and user_input:
-                    ai_response = st.session_state.chatbot.send_request(user_input)
-                    if ai_response.startswith("[Error]"):
-                        st.error(f"Failed to get response: {ai_response}")
-                    else:
-                        new_thread = {"initial": (user_input, ai_response), "follow_ups": []}
-                        st.session_state.chat_history.append(new_thread)
-                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-                        st.session_state.selected_conversation_index = len(st.session_state.chat_history) - 1
-                        st.rerun()
-
-        if st.session_state.selected_conversation_index is not None:
-            idx = st.session_state.selected_conversation_index
-            if 0 <= idx < len(st.session_state.chat_history):
-                thread = st.session_state.chat_history[idx]
-                user_msg, ai_msg = thread["initial"]
-                st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {user_msg}</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="ai-bubble">🤖 SATyr: {ai_msg}</div>', unsafe_allow_html=True)
-
-                for follow_up_user_msg, follow_up_ai_msg in thread.get("follow_ups", []):
-                    st.markdown(f'<div class="user-bubble">🧑 {st.session_state.user_name}: {follow_up_user_msg}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="ai-bubble">🤖 SATyr: {follow_up_ai_msg}</div>', unsafe_allow_html=True)
-
-            with st.form(f"reply_form_{idx}", clear_on_submit=True):
-                follow_up_input = st.text_input("💬 Follow-up question:", placeholder="Type your follow-up question here...", key=f"follow_up_{idx}")
-                reply_submitted = st.form_submit_button("Reply")
-
-                if reply_submitted and follow_up_input:
-                    thread = st.session_state.chat_history[idx]
-                    context_parts = [f"User: {thread['initial'][0]}\nSATyr: {thread['initial'][1]}"]
-                    context_parts.extend([f"User: {u}\nSATyr: {a}" for u, a in thread.get("follow_ups", [])])
-                    context = "\n".join(context_parts)
-                    ai_response = st.session_state.chatbot.send_request(follow_up_input, context)
-                    if ai_response.startswith("[Error]"):
-                        st.error(f"Failed to get follow-up response: {ai_response}")
-                    else:
-                        if "follow_ups" not in st.session_state.chat_history[idx]:
-                            st.session_state.chat_history[idx]["follow_ups"] = []
-                        st.session_state.chat_history[idx]["follow_ups"].append((follow_up_input, ai_response))
-                        save_chat_history(st.session_state.user_email, st.session_state.chat_history, st.session_state.user_token)
-                        st.rerun()
-
-            st.divider()
+if __name__ == "__main__":
+    main()

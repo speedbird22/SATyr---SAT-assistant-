@@ -196,12 +196,12 @@ def main():
     if 'chat_message' not in st.session_state:
         st.session_state.chat_message = ""
 
-    # Read and embed HTML with full-screen settings
+    # Read and embed HTML with a fixed height for the iframe
     with open("index.html", "r") as f:
         html_content = f.read()
     components.html(
         html_content,
-        height=None,  # Allow dynamic height based on content
+        height=900,  # Set explicit height to match a typical laptop screen
         scrolling=True,
         width=None
     )

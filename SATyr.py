@@ -9,7 +9,7 @@ import pyrebase
 import requests
 import uuid
 
-# Define theme color schemes
+# Define theme color schemes (unchanged)
 THEMES = {
     'satyr_stock': {
         'name': 'SATyr Stock Theme',
@@ -177,30 +177,55 @@ if not st.session_state.splash_shown:
     st.rerun()
 
 # Load environment variables
-load_dotenv()
+if not load_dotenv():
+    st.error("Failed to load environment variables from .env file. Please ensure the .env file exists and is accessible.")
+    st.stop()
+
+# Validate required environment variables
+required_env_vars = [
+    "API_KEY", "AUTH_DOMAIN", "PROJECT_ID", "STORAGE_BUCKET",
+    "MESSAGING_SENDER_ID", "APP_ID", "MEASUREMENT_ID", "DATABASE_URL"
+]
+missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+if missing_vars:
+    st.error(f"Missing required environment variables: {', '.join(missing_vars)}. Please check your .env file.")
+    st.stop()
 
 # Firebase configuration
 firebase_config = {
-    "apiKey": os.getenv("API_KEY", ""),
-    "authDomain": os.getenv("AUTH_DOMAIN", ""),
-    "projectId": os.getenv("PROJECT_ID", ""),
-    "storageBucket": os.getenv("STORAGE_BUCKET", ""),
-    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID", ""),
-    "appId": os.getenv("APP_ID", ""),
-    "measurementId": os.getenv("MEASUREMENT_ID", ""),
-    "databaseURL": os.getenv("DATABASE_URL", "")
+    "apiKey": os.getenv("API_KEY"),
+    "authDomain": os.getenv("AUTH_DOMAIN"),
+    "projectId": os.getenv("PROJECT_ID"),
+    "storageBucket": os.getenv("STORAGE_BUCKET"),
+    "messagingSenderId": os.getenv("MESSAGING_SENDER_ID"),
+    "appId": os.getenv("APP_ID"),
+    "measurementId": os.getenv("MEASUREMENT_ID"),
+    "databaseURL": os.getenv("DATABASE_URL")
 }
 
-# Initialize Firebase
+# Validate Firebase configuration
+required_config_fields = ["apiKey", "authDomain", "projectId", "databaseURL"]
+missing_fields = [field for field in required_config_fields if not firebase_config.get(field)]
+if missing_fields:
+    st.error(f"Firebase configuration is incomplete. Missing fields: {', '.join(missing_fields)}.")
+    st.stop()
+
+# Initialize Firebase with better error handling
 try:
     firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
     db = firebase.database()
+except http.client.HTTPException as e:
+    st.error(f"HTTP error during Firebase initialization: {str(e)}. Please check your network connection or Firebase configuration.")
+    st.stop()
+except ValueError as e:
+    st.error(f"Invalid Firebase configuration: {str(e)}. Please verify your Firebase config values in the .env file.")
+    st.stop()
 except Exception as e:
-    st.error(f"Failed to initialize Firebase: {str(e)}")
+    st.error(f"Unexpected error during Firebase initialization: {str(e)}. Please check your setup and try again.")
     st.stop()
 
-# Function to refresh user token
+# Function to refresh user token (unchanged)
 def refresh_user_token(refresh_token: str) -> Optional[str]:
     try:
         response = requests.post(
@@ -228,7 +253,7 @@ def refresh_user_token(refresh_token: str) -> Optional[str]:
         st.error(f"Error refreshing token: {str(e)}")
         return None
 
-# AI Client
+# AI Client (unchanged)
 class SATyrAI:
     def __init__(self):
         self.api_key = "rzZknlckhFldf2YV2AcpHlxmknkcL7Bo"
@@ -309,11 +334,11 @@ class SATyrAI:
         self.session_id = None
         self.context = None
 
-# Initialize chatbot
+# Initialize chatbot (unchanged)
 if st.session_state.chatbot is None:
     st.session_state.chatbot = SATyrAI()
 
-# Custom styling
+# Custom styling (unchanged)
 st.markdown(
     f"""
     <style>
@@ -449,13 +474,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Show double-click message
+# Show double-click message (unchanged)
 if st.session_state.show_double_click_message:
     st.markdown('<div id="floating-message">Please double-click the button.</div>', unsafe_allow_html=True)
     time.sleep(2)
     st.session_state.show_double_click_message = False
 
-# Update visit counter
+# Update visit counter (unchanged)
 def update_visit_counter():
     try:
         current_count = db.child("visit_count").get().val() or 0
@@ -465,7 +490,7 @@ def update_visit_counter():
     except Exception as e:
         st.warning(f"Failed to update visit counter: {str(e)}")
 
-# Load visit counter
+# Load visit counter (unchanged)
 def load_visit_counter():
     try:
         count = db.child("visit_count").get().val() or 0
@@ -473,7 +498,7 @@ def load_visit_counter():
     except Exception as e:
         st.warning(f"Failed to load visit counter: {str(e)}")
 
-# Fetch username
+# Fetch username (unchanged)
 def fetch_username(email: str, token: str) -> str:
     try:
         safe_email = email.replace(".", "_").replace("@", "_")
@@ -483,7 +508,7 @@ def fetch_username(email: str, token: str) -> str:
         st.warning(f"Failed to fetch username: {str(e)}")
         return None
 
-# Load chat history
+# Load chat history (unchanged)
 def load_chat_history(email: str, token: str) -> List[Dict]:
     if not st.session_state.logged_in:
         return []
@@ -510,7 +535,7 @@ def load_chat_history(email: str, token: str) -> List[Dict]:
         st.error(f"Failed to load chat history: {str(e)}")
         return []
 
-# Save chat history
+# Save chat history (unchanged)
 def save_chat_history(email: str, chat_history: List[Dict], token: str):
     if not st.session_state.logged_in:
         return
@@ -520,7 +545,7 @@ def save_chat_history(email: str, chat_history: List[Dict], token: str):
     except Exception as e:
         st.error(f"Failed to save chat history: {str(e)}")
 
-# Clear chat history
+# Clear chat history (unchanged)
 def clear_chat_history(email: str, token: str):
     if not st.session_state.logged_in:
         return
@@ -532,10 +557,10 @@ def clear_chat_history(email: str, token: str):
     except Exception as e:
         st.error(f"Failed to clear chat history: {str(e)}")
 
-# Initial load of visit counter
+# Initial load of visit counter (unchanged)
 load_visit_counter()
 
-# Login Page
+# Login Page (unchanged)
 if not st.session_state.logged_in:
     st.title("🔐 SATyr Login")
     st.markdown("Welcome to SATyr. Please log in or sign up to continue.")
@@ -731,7 +756,7 @@ if not st.session_state.logged_in:
                     else:
                         st.error(f"Failed to send reset email: {error_msg}")
 
-# Sidebar
+# Sidebar (unchanged)
 if st.session_state.logged_in:
     with st.sidebar:
         st.markdown('<div class="logo-container">', unsafe_allow_html=True)
@@ -817,7 +842,7 @@ if st.session_state.logged_in:
             st.session_state.temp_username = None
             st.rerun()
 
-# Settings Panel
+# Settings Panel (unchanged)
 if st.session_state.logged_in and st.session_state.show_settings:
     st.title("⚙️ Settings")
     st.subheader("Update Nickname")
@@ -902,7 +927,7 @@ if st.session_state.logged_in and st.session_state.show_settings:
         st.session_state.show_settings = False
         st.rerun()
 
-# Main Chat UI
+# Main Chat UI (unchanged)
 if st.session_state.logged_in and not st.session_state.show_settings:
     st.title("SATyr - your SAT saviour")
 

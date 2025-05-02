@@ -44,7 +44,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%; /* Full width */
+            width: 100%;
             margin: 0;
             position: relative;
         }
@@ -110,7 +110,8 @@
             padding-top: 80px;
             position: relative;
             width: 100%;
-            min-height: 100vh;
+            min-height: 900px; /* Minimum height for laptop screens */
+            height: 100vh; /* Ensure it takes at least the viewport height */
         }
 
         section {
@@ -121,7 +122,8 @@
             top: 80px;
             left: 0;
             width: 100%;
-            min-height: calc(100vh - 80px);
+            min-height: calc(900px - 80px); /* Adjust for header, match laptop screen height */
+            height: calc(100vh - 80px); /* Ensure it takes at least the viewport height */
             pointer-events: none;
             z-index: 1;
         }
@@ -149,7 +151,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: calc(100vh - 80px);
+            min-height: calc(900px - 80px); /* Match laptop screen height */
+            height: calc(100vh - 80px); /* Ensure it takes at least the viewport height */
             position: relative;
             padding: 0 20px;
         }
@@ -537,7 +540,8 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 160px);
+            min-height: calc(900px - 160px); /* Adjust for header and margins, match laptop screen height */
+            height: calc(100vh - 160px); /* Ensure it takes at least the viewport height */
         }
 
         .ai-chat-header {
@@ -633,7 +637,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: calc(100vh - 80px);
+            min-height: calc(900px - 80px); /* Match laptop screen height */
+            height: calc(100vh - 80px); /* Ensure it takes at least the viewport height */
             text-align: center;
             padding: 0 20px;
             width: 100%;
@@ -724,7 +729,13 @@
 
             .ai-chat-container {
                 width: 100%;
-                height: calc(100vh - 160px);
+                min-height: calc(100vh - 160px); /* Fallback for smaller screens */
+            }
+
+            .hero,
+            .login-container,
+            section {
+                min-height: calc(100vh - 80px); /* Fallback for smaller screens */
             }
         }
     </style>

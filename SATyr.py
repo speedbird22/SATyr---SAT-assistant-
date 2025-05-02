@@ -201,9 +201,8 @@ def main():
         html_content = f.read()
     components.html(
         html_content,
-        height=None,  # Remove fixed height to allow full-screen
+        height=None,  # Allow dynamic height based on content
         scrolling=True,
-        # Use full width of the viewport
         width=None
     )
 

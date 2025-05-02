@@ -10,6 +10,9 @@ import uuid
 import time
 import streamlit.components.v1 as components
 
+# Set page config to wide layout to maximize screen usage
+st.set_page_config(layout="wide", page_title="SATyr AI", initial_sidebar_state="collapsed")
+
 # Load environment variables
 load_dotenv()
 
@@ -193,10 +196,16 @@ def main():
     if 'chat_message' not in st.session_state:
         st.session_state.chat_message = ""
 
-    # Read and embed HTML
+    # Read and embed HTML with full-screen settings
     with open("index.html", "r") as f:
         html_content = f.read()
-    components.html(html_content, height=800, scrolling=True)
+    components.html(
+        html_content,
+        height=None,  # Remove fixed height to allow full-screen
+        scrolling=True,
+        # Use full width of the viewport
+        width=None
+    )
 
     # Handle JavaScript-to-Python communication
     if st.session_state.get('js_message'):

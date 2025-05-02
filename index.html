@@ -1,0 +1,1121 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SATyr AI</title>
+    <link href="https://fonts.cdnfonts.com/css/the-wood-essence" rel="stylesheet">
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'TheWoodEssence', serif;
+        }
+
+        header, nav, .logo, nav a, .footer-text, .tagline-word {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: #000000;
+            cursor: default;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .logo {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 1;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            font-size: 24px;
+            text-decoration: none;
+            color: white;
+        }
+
+        body:not(.home-active) .logo {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-20px);
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+            margin: 0 auto;
+            justify-content: center;
+            transition: all 0.5s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        nav a {
+            color: #AAAAAA;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+            cursor: pointer;
+            padding: 5px 0;
+        }
+
+        nav a:hover {
+            color: white;
+        }
+
+        nav a.active {
+            color: white;
+            position: relative;
+        }
+
+        nav a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: white;
+        }
+
+        main {
+            padding-top: 80px;
+            position: relative;
+        }
+
+        section {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            position: absolute;
+            top: 80px;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        section.active {
+            display: block;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 2;
+        }
+
+        section.fade-out {
+            opacity: 0;
+        }
+
+        .home-section {
+            display: block;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 2;
+        }
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: calc(100vh - 200px);
+            position: relative;
+            padding: 0 20px;
+        }
+
+        .hero-title {
+            font-size: 180px;
+            font-weight: 500;
+            margin-bottom: 60px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.9) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -5px;
+        }
+
+        .animated-tagline {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .tagline-word {
+            font-size: 36px;
+            font-weight: bold;
+            opacity: 0;
+            animation-fill-mode: forwards;
+            animation-duration: 1.5s;
+        }
+
+        .word1 {
+            animation-name: fadeIn;
+            animation-delay: 0.5s;
+        }
+
+        .word2 {
+            animation-name: fadeIn;
+            animation-delay: 2s;
+        }
+
+        .word3 {
+            animation-name: fadeIn;
+            animation-delay: 3.5s;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .scroll-down-arrow {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            animation: pulse 2s infinite ease-in-out;
+            transition: opacity 0.3s ease;
+        }
+
+        .scroll-down-arrow svg {
+            width: 40px;
+            height: 40px;
+            fill: rgba(255, 255, 255, 0.8);
+        }
+
+        .scroll-down-arrow:hover {
+            opacity: 0.7;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateX(-50%) translateY(10px);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 0.8;
+            }
+        }
+
+        .sat-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .sat-element {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-weight: 300;
+            white-space: nowrap;
+            transform-origin: center;
+            will-change: transform, opacity;
+            z-index: 0;
+        }
+
+        .sat-word {
+            font-size: 18px;
+        }
+
+        .sat-equation {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 22px;
+        }
+
+        .light-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .light-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            transition: background 1s ease;
+            will-change: transform;
+        }
+
+        body.home-active .light-blob {
+            background: radial-gradient(circle, rgba(255, 200, 100, 1), rgba(255, 200, 100, 0.3));
+        }
+
+        body.ai-active .light-blob {
+            background: radial-gradient(circle, rgba(0, 128, 255, 1), rgba(0, 128, 255, 0.3));
+        }
+
+        body.login-active .light-blob {
+            background: radial-gradient(circle, rgba(255, 152, 0, 1), rgba(255, 152, 0, 0.3));
+        }
+
+        .features-section {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            padding: 40px 20px;
+            margin-top: 40px;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .features-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            gap: 40px;
+        }
+
+        .feature-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            position: relative;
+        }
+
+        .feature-column:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 10%;
+            height: 80%;
+            width: 1px;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .feature-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .feature-description {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            flex-grow: 1;
+        }
+
+        .feature-image {
+            width: 100%;
+            height: 200px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controller-container {
+            width: 90%;
+            height: 90%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(30, 30, 30, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .controller-icon {
+            width: 100%;
+            height: 100%;
+            max-width: 300px;
+            max-height: 160px;
+            opacity: 0.9;
+        }
+
+        .api-mockup {
+            width: 100%;
+            height: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            background-color: #1a1a1a;
+            overflow: hidden;
+        }
+
+        .mockup-header {
+            height: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            background-color: #222222;
+        }
+
+        .mockup-title {
+            color: rgba(255, 215, 0, 0.8);
+            font-size: 12px;
+        }
+
+        .mockup-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 5px;
+        }
+
+        .mockup-control {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .mockup-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: #1a1a1a;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 18px;
+            font-size: 11px;
+            line-height: 1.3;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .message-user {
+            align-self: flex-end;
+            background-color: #3b3363;
+            border-bottom-right-radius: 5px;
+            color: white;
+        }
+
+        .message-bot {
+            align-self: flex-start;
+            background-color: #333333;
+            border-bottom-left-radius: 5px;
+            color: white;
+        }
+
+        .chat-input {
+rzec: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #1a1a1a;
+        }
+
+        .chat-input-field {
+            flex-grow: 1;
+            background-color: #333333;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            outline: none;
+        }
+
+        .chat-send-button {
+            background-color: #3b3363;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .chat-send-icon {
+            width: 10px;
+            height: 10px;
+            fill: white;
+        }
+
+        .feature-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: transparent;
+        }
+
+        .feature-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .button-icon {
+            margin-left: 8px;
+            font-size: 16px;
+        }
+
+        .ai-chat-container {
+            max-width: 800px;
+            width: 90%;
+            margin: 100px auto 0;
+            background-color: rgba(30, 30, 30, 0.7);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+        }
+
+        .ai-chat-header {
+            padding: 20px;
+            background-color: rgba(0, 128, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .ai-chat-body {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .ai-message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .ai-message-user {
+            align-self: flex-end;
+            background-color: rgba(0, 128, 255, 0.3);
+            border-bottom-right-radius: 5px;
+            color: white;
+        }
+
+        .ai-message-bot {
+            align-self: flex-start;
+            background-color: rgba(0, 128, 255, 0.3);
+            border-bottom-left-radius: 5px;
+            color: white;
+        }
+
+        .ai-chat-form {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-chat-input {
+            flex-grow: 1;
+            background-color: rgba(50, 50, 50, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .ai-chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .ai-chat-submit {
+            background-color: rgba(0, 128, 255, 0.7);
+            border: none;
+            border-radius: 30px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+
+        .ai-chat-submit:hover {
+            background-color: rgba(0, 128, 255, 0.9);
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: calc(100vh - 200px);
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .login-form {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .login-input {
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background-color: rgba(50, 50, 50, 0.7);
+            color: white;
+            font-size: 16px;
+        }
+
+        .login-button, .signup-button {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.8) 0%, rgba(255, 94, 0, 0.8) 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .signup-button {
+            background: transparent;
+            border: 2px solid rgba(255, 152, 0, 0.6);
+        }
+
+        .login-button:hover, .signup-button:hover {
+            transform: translateY(-3px);
+        }
+
+        .error-message {
+            color: #ff4d4d;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .chat-history {
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+
+        .chat-history-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-history-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .features-container {
+                flex-direction: column;
+            }
+
+            .feature-column:not(:last-child)::after {
+                display: none;
+            }
+
+            .hero-title {
+                font-size: 100px;
+            }
+
+            .animated-tagline {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .ai-chat-container {
+                width: 95%;
+                height: 80vh;
+            }
+        }
+    </style>
+</head>
+<body class="home-active">
+    <!-- SAT Background Elements -->
+    <div class="sat-background" id="sat-background"></div>
+
+    <!-- Light effect overlay -->
+    <div class="light-effect">
+        <div class="light-blob" id="blob1" style="width: 600px; height: 600px; opacity: 0.3;"></div>
+        <div class="light-blob" id="blob2" style="width: 400px; height: 400px; opacity: 0.4;"></div>
+        <div class="light-blob" id="blob3" style="width: 300px; height: 300px; opacity: 0.5;"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <a href="#" class="logo">SATyr</a>
+            <nav>
+                <a class="nav-link active" data-section="home">Home</a>
+                <a class="nav-link" data-section="ai">AI</a>
+                <a class="nav-link" data-section="login">Login</a>
+                <a class="nav-link" id="logout-link" style="display: none;">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main>
+        <!-- Home Section -->
+        <section id="home" class="home-section active">
+            <div class="hero">
+                <h1 class="hero-title">SATyr</h1>
+                <div class="animated-tagline">
+                    <span class="tagline-word word1">Practice,</span>
+                    <span class="tagline-word word2">Perfect,</span>
+                    <span class="tagline-word word3">Perform.</span>
+                </div>
+                <div class="scroll-down-arrow" id="scroll-down-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="features-section">
+                <div class="features-container">
+                    <div class="feature-column">
+                        <h2 class="feature-title">GAMES</h2>
+                        <p class="feature-description">
+                            Reinforce concepts and stay engaged with subject-specific games designed to make learning active, enjoyable, and effective.
+                        </p>
+                        <div class="feature-image">
+                            <div class="controller-container">
+                                <svg class="controller-icon" viewBox="0 0 300 160" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M30,80 C30,50 50,30 80,20 C110,10 140,5 150,5 C160,5 190,10 220,20 C250,30 270,50 270,80 
+                                             C270,110 260,130 240,140 C220,150 180,155 150,155 
+                                             C120,155 80,150 60,140 C40,130 30,110 30,80 Z" 
+                                          fill="rgba(40,40,40,0.5)" 
+                                          stroke="rgba(255,255,255,0.8)" 
+                                          stroke-width="2"/>
+                                    <circle cx="70" cy="80" r="25" fill="rgba(255,255,255,0.3)"/>
+                                    <circle cx="230" cy="80" r="25" fill="rgba(255,255,255,0.3)"/>
+                                    <rect x="90" y="60" width="20" height="20" fill="rgba(255,255,255,0.5)"/>
+                                    <rect x="120" y="60" width="20" height="20" fill="rgba(255,255,255,0.5)"/>
+                                    <rect x="90" y="90" width="20" height="20" fill="rgba(255,255,255,0.5)"/>
+                                    <rect x="120" y="90" width="20" height="20" fill="rgba(255,255,255,0.5)"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <a class="feature-button" href="#" onclick="alert('Games feature coming soon!');">
+                            Play Now
+                            <span class="button-icon">→</span>
+                        </a>
+                    </div>
+                    <div class="feature-column">
+                        <h2 class="feature-title">AI ASSISTANT</h2>
+                        <p class="feature-description">
+                            Get personalized help with SAT preparation through our AI-powered assistant, offering real-time answers and tailored study tips.
+                        </p>
+                        <div class="feature-image">
+                            <div class="api-mockup">
+                                <div class="mockup-header">
+                                    <span class="mockup-title">SATyr AI</span>
+                                    <div class="mockup-controls">
+                                        <span class="mockup-control" style="background-color: #ff605c;"></span>
+                                        <span class="mockup-control" style="background-color: #ffbd44;"></span>
+                                        <span class="mockup-control" style="background-color: #00ca4e;"></span>
+                                    </div>
+                                </div>
+                                <div class="mockup-body">
+                                    <div class="chat-container">
+                                        <div class="chat-messages">
+                                            <div class="message message-user">How can I improve my SAT math score?</div>
+                                            <div class="message message-bot">Focus on mastering algebra and geometry concepts, practice with timed tests, and review mistakes to understand your weaknesses.</div>
+                                            <div class="message message-user">Any tips for time management?</div>
+                                            <div class="message message-bot">Prioritize easier questions first, skip and return to tough ones, and practice pacing with full-length mock exams.</div>
+                                        </div>
+                                        <div class="chat-input">
+                                            <input type="text" class="chat-input-field" placeholder="Type your question...">
+                                            <button class="chat-send-button">
+                                                <svg class="chat-send-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <a class="feature-button" href="#" data-section="ai">Try AI Assistant</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Section -->
+        <section id="ai">
+            <div class="ai-chat-container">
+                <div class="ai-chat-header">
+                    <h2 class="ai-chat-title">SATyr AI Assistant</h2>
+                    <button onclick="clearChatHistory()" style="background: none; border: none; color: white; cursor: pointer;">Clear History</button>
+                </div>
+                <div class="ai-chat-body" id="ai-chat-body"></div>
+                <div class="ai-chat-form">
+                    <input type="text" class="ai-chat-input" id="ai-chat-input" placeholder="Ask SATyr AI anything...">
+                    <button class="ai-chat-submit" onclick="sendChatMessage()">Send</button>
+                </div>
+            </div>
+            <div class="chat-history" id="chat-history"></div>
+        </section>
+
+        <!-- Login Section -->
+        <section id="login">
+            <div class="login-container">
+                <h2>Login or Sign Up</h2>
+                <div class="login-form" id="login-form">
+                    <input type="email" class="login-input" id="login-email" placeholder="Email">
+                    <input type="password" class="login-input" id="login-password" placeholder="Password">
+                    <button class="login-button" onclick="login()">Login</button>
+                    <button class="signup-button" onclick="showSignup()">Sign Up</button>
+                    <div class="error-message" id="login-error"></div>
+                </div>
+                <div class="login-form" id="signup-form" style="display: none;">
+                    <input type="email" class="login-input" id="signup-email" placeholder="Email">
+                    <input type="text" class="login-input" id="signup-username" placeholder="Username">
+                    <input type="password" class="login-input" id="signup-password" placeholder="Password">
+                    <button class="login-button" onclick="signup()">Sign Up</button>
+                    <button class="signup-button" onclick="showLogin()">Back to Login</button>
+                    <div class="error-message" id="signup-error"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Navigation
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('section');
+        const body = document.body;
+
+        function setActiveSection(sectionId) {
+            sections.forEach(section => {
+                section.classList.remove('active');
+                section.classList.add('fade-out');
+                setTimeout(() => {
+                    section.classList.remove('fade-out');
+                    section.style.display = 'none';
+                }, 500);
+            });
+
+            const targetSection = document.getElementById(sectionId);
+            targetSection.style.display = 'block';
+            setTimeout(() => {
+                targetSection.classList.add('active');
+            }, 10);
+
+            navLinks.forEach(link => link.classList.remove('active'));
+            const activeLink = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
+            if (activeLink) activeLink.classList.add('active');
+
+            body.className = `${sectionId}-active`;
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = link.getAttribute('data-section');
+                setActiveSection(sectionId);
+                sendToPython({ action: 'set_page', data: { page: sectionId } });
+            });
+        });
+
+        // SAT Background Animation
+        const satBackground = document.getElementById('sat-background');
+        const words = ['SAT', 'Math', 'Reading', 'Writing', 'Score', 'Test', 'Prep', 'Study', 'Learn', 'Practice'];
+        const equations = ['E=mc²', 'a²+b²=c²', 'F=ma', 'y=mx+b', '∫f(x)dx', 'sin²θ+cos²θ=1', '∑n=1'];
+
+        function createSatElement() {
+            const isWord = Math.random() > 0.3;
+            const text = isWord ? words[Math.floor(Math.random() * words.length)] : equations[Math.floor(Math.random() * equations.length)];
+            const element = document.createElement('div');
+            element.textContent = text;
+            element.className = isWord ? 'sat-element sat-word' : 'sat-element sat-equation';
+            element.style.left = `${Math.random() * 100}vw`;
+            element.style.top = `${Math.random() * 100}vh`;
+            element.style.opacity = Math.random() * 0.3 + 0.1;
+            element.style.transform = `rotate(${Math.random() * 360}deg)`;
+            satBackground.appendChild(element);
+
+            setTimeout(() => {
+                element.style.transition = `transform ${10 + Math.random() * 20}s linear, opacity ${5 + Math.random() * 10}s linear`;
+                element.style.transform = `translate(${Math.random() * 200 - 100}px, ${Math.random() * 200 - 100}px) rotate(${Math.random() * 360}deg)`;
+                element.style.opacity = 0;
+            }, 100);
+
+            setTimeout(() => element.remove(), 30000);
+        }
+
+        setInterval(createSatElement, 1000);
+
+        // Light Blob Animation
+        const blobs = document.querySelectorAll('.light-blob');
+        function animateBlobs() {
+            blobs.forEach((blob, index) => {
+                const x = Math.random() * (window.innerWidth - 200) + 100;
+                const y = Math.random() * (window.innerHeight - 200) + 100;
+                blob.style.transform = `translate(${x}px, ${y}px)`;
+                blob.style.transition = `transform ${10 + index * 5}s ease`;
+            });
+        }
+
+        setInterval(animateBlobs, 15000);
+        animateBlobs();
+
+        // Scroll Down Arrow
+        const scrollArrow = document.getElementById('scroll-down-arrow');
+        scrollArrow.addEventListener('click', () => {
+            window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+        });
+
+        // Streamlit Communication
+        function sendToPython(data) {
+            window.parent.postMessage({ type: 'streamlit:jsToPython', data }, '*');
+        }
+
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'streamlit:pythonToJs') {
+                handlePythonResponse(event.data.data);
+            }
+        });
+
+        // Handle Python responses
+        function handlePythonResponse(response) {
+            if (response.status === 'success') {
+                if (response.message === 'Login successful' || response.message === 'Signup successful, verification email sent') {
+                    document.getElementById('login-error').textContent = '';
+                    document.getElementById('signup-error').textContent = '';
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('signup-form').style.display = 'none';
+                    document.getElementById('logout-link').style.display = 'block';
+                    setActiveSection('ai');
+                    updateChatHistory(response.chat_history || []);
+                } else if (response.message === 'Chat history cleared') {
+                    updateChatHistory([]);
+                } else if (response.response) {
+                    appendChatMessage('ai-message-bot', response.response);
+                    updateChatHistory(response.chat_history || []);
+                } else if (response.chat_history) {
+                    updateChatHistory(response.chat_history);
+                } else if (response.message === 'Logged out successfully') {
+                    document.getElementById('logout-link').style.display = 'none';
+                    setActiveSection('login');
+                }
+            } else {
+                const errorDiv = document.getElementById(`${response.action === 'login' ? 'login' : 'signup'}-error`);
+                if (errorDiv) errorDiv.textContent = response.message;
+            }
+        }
+
+        // Login and Signup
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            sendToPython({ action: 'login', data: { email, password } });
+        }
+
+        function signup() {
+            const email = document.getElementById('signup-email').value;
+            const username = document.getElementById('signup-username').value;
+            const password = document.getElementById('signup-password').value;
+            sendToPython({ action: 'signup', data: { email, username, password } });
+        }
+
+        function showSignup() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'flex';
+        }
+
+        function showLogin() {
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'flex';
+        }
+
+        document.getElementById('logout-link').addEventListener('click', () => {
+            sendToPython({ action: 'logout' });
+        });
+
+        // Chat Functionality
+        function sendChatMessage() {
+            const input = document.getElementById('ai-chat-input');
+            const message = input.value.trim();
+            if (message) {
+                appendChatMessage('ai-message-user', message);
+                sendToPython({ action: 'chat', data: { message } });
+                input.value = '';
+            }
+        }
+
+        function appendChatMessage(className, text) {
+            const chatBody = document.getElementById('ai-chat-body');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `ai-message ${className}`;
+            messageDiv.textContent = text;
+            chatBody.appendChild(messageDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        document.getElementById('ai-chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        // Chat History
+        function updateChatHistory(history) {
+            const chatHistoryDiv = document.getElementById('chat-history');
+            chatHistoryDiv.innerHTML = '';
+            history.forEach((thread, index) => {
+                const item = document.createElement('div');
+                item.className = 'chat-history-item';
+                item.textContent = `Q: ${thread.initial[0].substring(0, 50)}...`;
+                item.onclick = () => {
+                    const chatBody = document.getElementById('ai-chat-body');
+                    chatBody.innerHTML = '';
+                    appendChatMessage('ai-message-user', thread.initial[0]);
+                    appendChatMessage('ai-message-bot', thread.initial[1]);
+                    thread.follow_ups.forEach(([userMsg, botMsg]) => {
+                        appendChatMessage('ai-message-user', userMsg);
+                        appendChatMessage('ai-message-bot', botMsg);
+                    });
+                };
+                chatHistoryDiv.appendChild(item);
+            });
+        }
+
+        function clearChatHistory() {
+            sendToPython({ action: 'clear_history' });
+        }
+
+        // Initialize chat history
+        sendToPython({ action: 'get_chat_history' });
+    </script>
+</body>
+</html>
